@@ -11,6 +11,7 @@ import { User } from '../users/entities/user.entity';
 import { Organization } from '../users/entities/organization.entity';
 import { Invitation } from '../users/entities/invitation.entity';
 import { ApiKey } from '../users/entities/api-key.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
 
 @Module({
   imports: [
@@ -19,11 +20,17 @@ import { ApiKey } from '../users/entities/api-key.entity';
       secret: process.env.JWT_SECRET || 'secretKey',
       signOptions: { expiresIn: '60m' },
     }),
-    TypeOrmModule.forFeature([User, Organization, Invitation, ApiKey]),
+    TypeOrmModule.forFeature([
+      User,
+      Organization,
+      Invitation,
+      ApiKey,
+      RefreshToken,
+    ]),
     UsersModule,
   ],
   providers: [AuthService, JwtStrategy, ApiKeyStrategy],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, JwtStrategy, PassportModule, JwtModule],
 })
 export class AuthModule {}

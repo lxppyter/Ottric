@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileCode, CheckCircle2, History, Loader2, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -17,15 +17,10 @@ export default function IngestionPage() {
 
   const fetchHistory = async () => {
     try {
-        const token = localStorage.getItem('token');
-        if(!token) return;
-        
-        const res = await axios.get('http://localhost:3000/sbom', {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get('/sbom');
         setHistory(res.data);
-    } catch (e) {
-        console.error("Failed to fetch history");
+    } catch (e: any) {
+        console.error("Failed to fetch history:", e.response?.data || e.message);
     }
   };
 
@@ -49,16 +44,9 @@ export default function IngestionPage() {
     formData.append('file', file);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-           router.push('/login');
-           return;
-      }
-
-      await axios.post('http://localhost:3000/sbom/upload', formData, {
+      await api.post('/sbom/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`
         },
       });
 
@@ -180,7 +168,7 @@ export default function IngestionPage() {
                                 </div>
                                 <div className="flex justify-between text-xs text-muted-foreground font-mono">
                                     <span>{job.release?.version || 'v1.0'}</span>
-                                    <span>{new Date(job.createdAt).toLocaleDateString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span>{new Date(job.updatedAt || job.createdAt).toLocaleDateString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
                                 {i !== history.length - 1 && <div className="h-px bg-white/5 mt-3 group-hover:bg-white/10 transition-colors" />}
                             </div>
@@ -194,4 +182,3 @@ export default function IngestionPage() {
     </div>
   );
 }
-

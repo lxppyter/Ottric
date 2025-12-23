@@ -16,7 +16,10 @@ export class IngestionService {
   ) {}
 
   async ingest(dto: IngestSbomDto, userId: string) {
-    const product = await this.productsService.ensureProduct(dto.productName, userId);
+    const product = await this.productsService.ensureProduct(
+      dto.productName,
+      userId,
+    );
     const release = await this.productsService.createRelease(
       product,
       dto.version,
@@ -27,14 +30,14 @@ export class IngestionService {
     );
     const sbom = await this.sbomService.ingestSbom(release, dto.sbom);
     await this.vexService.correlate(sbom);
-    
+
     // Trigger Notifications
     this.notificationsService.dispatch(userId, 'sbom.ingested', {
-        product: product.name,
-        version: release.version,
-        sbomId: sbom.id
+      product: product.name,
+      version: release.version,
+      sbomId: sbom.id,
     });
-    
+
     return sbom;
   }
 }

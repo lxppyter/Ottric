@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { VexStatement } from './entities/vex-statement.entity';
 import { VexService } from './vex.service';
@@ -8,9 +8,9 @@ import { SbomModule } from '../sbom/sbom.module';
 
 @Module({
   imports: [
-      TypeOrmModule.forFeature([VexStatement]),
-      VulnModule,
-      SbomModule
+    TypeOrmModule.forFeature([VexStatement]),
+    VulnModule,
+    forwardRef(() => SbomModule),
   ],
   controllers: [VexController],
   providers: [VexService],

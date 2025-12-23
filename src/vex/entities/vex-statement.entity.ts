@@ -6,7 +6,7 @@ export enum VexStatus {
   AFFECTED = 'affected',
   NOT_AFFECTED = 'not_affected',
   FIXED = 'fixed',
-  UNDER_INVESTIGATION = 'under_investigation'
+  UNDER_INVESTIGATION = 'under_investigation',
 }
 
 @Entity()
@@ -14,10 +14,10 @@ export class VexStatement {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Vulnerability, vuln => vuln.statements)
+  @ManyToOne(() => Vulnerability, (vuln) => vuln.statements)
   vulnerability: Vulnerability;
 
-  @ManyToOne(() => Product)
+  @ManyToOne(() => Product, { onDelete: 'CASCADE' })
   product: Product;
 
   @Column({ nullable: true })
@@ -26,7 +26,7 @@ export class VexStatement {
   @Column({
     type: 'enum',
     enum: VexStatus,
-    default: VexStatus.UNDER_INVESTIGATION
+    default: VexStatus.UNDER_INVESTIGATION,
   })
   status: VexStatus;
 

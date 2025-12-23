@@ -146,17 +146,16 @@
   background: var(--accent);
 }
 
-/* Glassmorphism */
+/* Glassmorphism - No Blur (Max Performance) */
 .glass-panel {
-  background: rgba(20, 20, 30, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  background: rgba(20, 20, 30, 0.85); /* Increased opacity slightly since blur is gone */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.25);
+  transform: translateZ(0); /* Force GPU */
 }
 
 /* Noise Texture */
-body::before {
+/* body::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -164,7 +163,7 @@ body::before {
   pointer-events: none;
   z-index: 9999;
   mix-blend-mode: overlay;
-}
+} */
 
 
 @layer base {

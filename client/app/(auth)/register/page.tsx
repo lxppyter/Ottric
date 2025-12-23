@@ -7,6 +7,7 @@ import { ArrowRight, Mail, Lock, User, Building2, Sparkles, Shield, Key } from '
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner"
 import axios from 'axios';
+import api from '@/lib/axios';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -44,7 +45,7 @@ export default function RegisterPage() {
           return;
       }
 
-      await axios.post('http://localhost:3000/auth/register', {
+      await api.post('/auth/register', {
         email: formData.email,
         password: formData.password,
         organizationName: mode === 'create' ? formData.company : undefined,
@@ -73,7 +74,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 overflow-hidden relative py-20">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 overflow-hidden relative py-10">
       
       {/* Cyberpunk Background Effects */}
       <div className="absolute inset-0 bg-cyberpunk-grid pointer-events-none" />
@@ -88,21 +89,21 @@ export default function RegisterPage() {
           <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-secondary/20 to-transparent opacity-50 rounded-br-full pointer-events-none" />
           
           {/* Header */}
-          <div className="text-center mb-10 relative">
-            <Badge variant="outline" className="mb-4 border-secondary/50 text-secondary bg-secondary/10 tracking-widest uppercase text-[10px] py-1 px-3 rounded-full backdrop-blur-sm">
+          <div className="text-center mb-6 relative">
+            <Badge variant="outline" className="mb-2 border-secondary/50 text-secondary bg-secondary/10 tracking-widest uppercase text-[10px] py-1 px-3 rounded-full backdrop-blur-sm">
               <Sparkles className="w-3 h-3 mr-1" />
               Join The Network
             </Badge>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-2 text-white text-glow">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-1 text-white text-glow">
               Get <span className="text-secondary">Connected.</span>
             </h1>
-            <p className="text-muted-foreground text-sm font-light tracking-wide">
+            <p className="text-muted-foreground text-xs font-light tracking-wide">
               Create your digital identity
             </p>
           </div>
 
           {/* Mode Toggle */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-6">
               <div className="p-1 bg-black/40 rounded-full border border-white/10 flex">
                   <button 
                     onClick={() => setMode('create')}
@@ -120,9 +121,9 @@ export default function RegisterPage() {
           </div>
 
           {/* Register Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Name Field - Visual Only for now */}
               <div className="space-y-2 group/input">
                 <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 group-focus-within/input:text-secondary transition-colors">
@@ -192,7 +193,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Password Field */}
               <div className="space-y-2 group/input">
                 <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 group-focus-within/input:text-secondary transition-colors">
@@ -252,7 +253,7 @@ export default function RegisterPage() {
             </Button>
 
             {/* Divider */}
-            <div className="relative my-8">
+            <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-white/10" />
               </div>
@@ -280,7 +281,7 @@ export default function RegisterPage() {
         </div>
         
         {/* Footer */}
-        <div className="mt-8 text-center">
+        <div className="mt-4 text-center">
           <Link href="/" className="text-xs font-medium text-muted-foreground hover:text-secondary transition-colors tracking-widest uppercase">
             &lt; Return to Base /&gt;
           </Link>

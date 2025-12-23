@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
 import { Release } from './release.entity';
 import { User } from '../../users/entities/user.entity';
 import { Organization } from '../../users/entities/organization.entity';
@@ -17,12 +24,12 @@ export class Product {
   @ManyToOne(() => User, { eager: true }) // Load owner automatically for checks
   owner: User;
 
-  @ManyToOne(() => Organization, org => org.products)
+  @ManyToOne(() => Organization, (org) => org.products)
   organization: Organization;
 
   @CreateDateColumn()
   createdAt: Date;
 
-  @OneToMany(() => Release, release => release.product)
+  @OneToMany(() => Release, (release) => release.product, { cascade: true })
   releases: Release[];
 }

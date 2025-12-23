@@ -10,22 +10,38 @@ export class IngestSbomDto {
   @IsString()
   version: string;
 
-  @ApiProperty({ example: '85ed...', description: 'Git Commit SHA', required: false })
+  @ApiProperty({
+    example: '85ed...',
+    description: 'Git Commit SHA',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   commitSha?: string;
 
-  @ApiProperty({ example: 'build-123', description: 'CI Build ID', required: false })
+  @ApiProperty({
+    example: 'build-123',
+    description: 'CI Build ID',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   buildId?: string;
 
-  @ApiProperty({ example: 'sha256:...', description: 'Container Image Digest', required: false })
+  @ApiProperty({
+    example: 'sha256:...',
+    description: 'Container Image Digest',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   imageDigest?: string;
 
-  @ApiProperty({ example: 'linux/amd64', description: 'Platform/Architecture', required: false })
+  @ApiProperty({
+    example: 'linux/amd64',
+    description: 'Platform/Architecture',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   platform?: string;

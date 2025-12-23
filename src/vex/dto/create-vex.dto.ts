@@ -1,4 +1,3 @@
-
 import { IsString, IsEnum, IsOptional } from 'class-validator';
 import { VexStatus } from '../entities/vex-statement.entity';
 import { ApiProperty } from '@nestjs/swagger';

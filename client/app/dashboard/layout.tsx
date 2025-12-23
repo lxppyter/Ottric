@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, FileText, Settings, LogOut, ShieldCheck, Upload, Building2, Archive, Bell } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { LayoutDashboard, FileText, Settings, LogOut, ShieldCheck, Upload, Building2, Archive, Bell, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PersonalNotifications } from '@/components/PersonalNotifications';
@@ -10,6 +11,25 @@ import { PersonalNotifications } from '@/components/PersonalNotifications';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+          router.push('/login');
+      } else {
+          setIsChecking(false);
+      }
+  }, [router]);
+
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#05050A] text-white">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -23,6 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { icon: Archive, label: 'Projects', href: '/dashboard/projects' }, 
     { icon: Upload, label: 'Ingestion', href: '/dashboard/ingest' },
     { icon: Building2, label: 'Organization', href: '/dashboard/organization' },
+    { icon: CreditCard, label: 'Billing', href: '/dashboard/settings/billing' },
     { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
   ];
 

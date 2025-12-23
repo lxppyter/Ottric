@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Sbom } from './entities/sbom.entity';
-import { Component } from './entities/component.entity';
 import { Release } from '../products/entities/release.entity';
 
 @Injectable()
@@ -10,94 +9,76 @@ export class SbomService {
   constructor(
     @InjectRepository(Sbom)
     private sbomRepository: Repository<Sbom>,
-    @InjectRepository(Component)
-    private componentRepository: Repository<Component>,
+    @InjectRepository(Release)
+    private releaseRepository: Repository<Release>,
   ) {}
 
   async ingestSbom(release: Release, sbomData: any): Promise<Sbom> {
     // 1. Create or Update SBOM
-    let sbom = await this.sbomRepository.findOne({ where: { release: { id: release.id } } });
+    let sbom = await this.sbomRepository.findOne({
+      where: { release: { id: release.id } },
+    });
     if (!sbom) {
       sbom = this.sbomRepository.create({
         release,
         content: sbomData,
       });
     } else {
-        sbom.content = sbomData;
+      sbom.content = sbomData;
+      sbom.release = release;
+      sbom.updatedAt = new Date(); // Force update SBOM
+
+      // Also touch release update time
+      release.updatedAt = new Date();
+      await this.releaseRepository.save(release);
     }
     sbom = await this.sbomRepository.save(sbom);
 
     // 2. Parse Components (Basic CycloneDX parsing)
+    // OPTIMIZATION: We no longer save individual components to the 'component' table to avoid row explosion (200+ per ingest).
+    // We rely on the 'content' JSONB column for the full SBOM data.
+    // The VEX and Portal services will read from 'sbom.content.components'.
+
+    /* 
     const rawComponents = sbomData.components || [];
-    
-    // Clear existing components for this SBOM to avoid stale data on re-ingest
-    // A better approach would be diffing, but for MVP, delete and recreate is safer.
     await this.componentRepository.delete({ sbom: { id: sbom.id } });
-
-    const componentsToSave: Component[] = [];
-    for (const comp of rawComponents) {
-      // Basic validation
-      if (!comp.name || !comp.version) continue;
-
-      // Extract Helper
-      const supplier = typeof comp.supplier === 'string' ? comp.supplier : comp.supplier?.name;
-      
-      let licenses: string[] = [];
-      if (comp.licenses && Array.isArray(comp.licenses)) {
-          licenses = comp.licenses.map((l: any) => l.license?.id || l.license?.name || l.expression).filter(Boolean);
-      }
-
-      let hashes: any = {};
-      if (comp.hashes && Array.isArray(comp.hashes)) {
-          comp.hashes.forEach((h: any) => {
-              if(h.alg && h.content) hashes[h.alg] = h.content;
-          });
-      }
-
-      const component = this.componentRepository.create({
-        name: comp.name,
-        version: comp.version,
-        purl: comp.purl,
-        cpe: comp.cpe,
-        supplier: supplier,
-        licenses: licenses,
-        hashes: hashes,
-        sbom: sbom,
-      });
-      componentsToSave.push(component);
-    }
-
-    if (componentsToSave.length > 0) {
-        await this.componentRepository.save(componentsToSave);
-    }
+    
+    // ... (Code removed for optimization) ...
+    // See git history if component-level granularity is needed again.
+    */
 
     return sbom;
   }
 
   async count(organizationId: string): Promise<number> {
     return this.sbomRepository.count({
-        where: {
-            release: {
-                product: {
-                    organization: { id: organizationId } 
-                }
-            }
-        }
+      where: {
+        release: {
+          product: {
+            organization: { id: organizationId },
+          },
+        },
+      },
     });
   }
 
   async findRecent(organizationId: string): Promise<Sbom[]> {
     return this.sbomRepository.find({
-      order: { createdAt: 'DESC' },
+      order: { updatedAt: 'DESC' },
       take: 5,
       relations: ['release', 'release.product', 'release.product.organization'],
       where: {
         release: {
           product: {
-            organization: { id: organizationId } 
-          }
-        }
-      }
+            organization: { id: organizationId },
+          },
+        },
+      },
+    });
+  }
+  async findByReleaseId(releaseId: string): Promise<Sbom | null> {
+    return this.sbomRepository.findOne({
+      where: { release: { id: releaseId } },
     });
   }
 }

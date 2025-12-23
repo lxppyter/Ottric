@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, AlertTriangle, Shield, Archive, CheckCircle2, Server, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/axios';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Building2 } from 'lucide-react';
@@ -37,9 +37,7 @@ export default function Dashboard() {
            return;
         }
 
-        const response = await axios.get('http://localhost:3000/dashboard/stats', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await api.get('/dashboard/stats');
         setStats(response.data);
       } catch (error) {
         console.error('Failed to fetch stats', error);
@@ -70,10 +68,7 @@ export default function Dashboard() {
                           const formData = new FormData(e.currentTarget);
                           const name = formData.get('name') as string;
                           try {
-                              const token = localStorage.getItem('token');
-                              const res = await axios.post('http://localhost:3000/organization', { name }, {
-                                  headers: { Authorization: `Bearer ${token}` }
-                              });
+                              const res = await api.post('/organization', { name });
                               // Update Token with new Organization Claims
                               if (res.data.access_token) {
                                   localStorage.setItem('token', res.data.access_token);
@@ -250,4 +245,3 @@ function StatsCard({ title, value, icon: Icon, trend, variant = "default", decor
         </motion.div>
     )
 }
-

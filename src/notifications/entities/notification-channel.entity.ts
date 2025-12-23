@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Organization } from '../../users/entities/organization.entity';
 
 export enum NotificationType {
@@ -27,7 +34,9 @@ export class NotificationChannel {
   @Column('simple-array', { nullable: true })
   triggers: string[]; // e.g., ['vuln_critical', 'ingest_failed']
 
-  @ManyToOne(() => Organization, (org) => org.notificationChannels, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Organization, (org) => org.notificationChannels, {
+    onDelete: 'CASCADE',
+  })
   organization: Organization;
 
   @CreateDateColumn()

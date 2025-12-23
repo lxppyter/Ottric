@@ -9,7 +9,7 @@ import { User, Key, Bell, Copy, Trash2, Mail, Hash, Globe, Users, Shield, Buildi
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -35,33 +35,26 @@ export default function SettingsPage() {
 
             try {
                 // 1. Fetch Profile First
-                const profileRes = await axios.get('http://localhost:3000/users/profile', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const profileRes = await api.get('/users/profile');
                 const userProfile = profileRes.data;
                 setProfile(userProfile);
 
                 // 2. Fetch Common Data (Notifications)
-              // 3. Channels & Members
-             const [channelsRes] = await Promise.all([
-                 axios.get('http://localhost:3000/notifications', { headers: { Authorization: `Bearer ${token}` } }),
-             ]);
-             setChannels(channelsRes.data);
-                // 3. Fetch Members (Accessible to all?) - Check Controller
-                // Assuming members list is accessible to all for now, or catch error
+                const [channelsRes] = await Promise.all([
+                    api.get('/notifications'),
+                ]);
+                setChannels(channelsRes.data);
+                
+                // 3. Fetch Members
                 try {
-                     const membersRes = await axios.get('http://localhost:3000/organization/members', {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                     const membersRes = await api.get('/organization/members');
                     setMembers(membersRes.data);
                 } catch (e) { console.error("Failed to fetch members"); }
 
                 // 4. Admin Only Data
                 if (userProfile.role === 'admin') {
                      try {
-                        const keysRes = await axios.get('http://localhost:3000/organization/api-keys', {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
+                        const keysRes = await api.get('/organization/api-keys');
                         setApiKeys(keysRes.data);
                      } catch (e: any) { 
                         if (e.response?.status === 403) {
@@ -81,7 +74,6 @@ export default function SettingsPage() {
 
             } catch (e) {
                 console.error("Critical: Failed to fetch profile", e);
-                // If profile fails, likely token invalid
             }
         };
         fetchData();
@@ -89,17 +81,12 @@ export default function SettingsPage() {
 
     const generateApiKey = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.post('http://localhost:3000/organization/api-keys', {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.post('/organization/api-keys', {});
             setNewKey(res.data.key);
             toast.success("API Key Generated");
             
             // Refresh keys
-             const keysRes = await axios.get('http://localhost:3000/organization/api-keys', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+             const keysRes = await api.get('/organization/api-keys');
             setApiKeys(keysRes.data);
         } catch (e) {
             toast.error("Failed to generate key");
@@ -108,10 +95,7 @@ export default function SettingsPage() {
 
     const deleteApiKey = async (id: string) => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:3000/organization/api-keys/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/organization/api-keys/${id}`);
             toast.success("Key deleted");
             setApiKeys(apiKeys.filter(k => k.id !== id));
         } catch (e) {
@@ -121,21 +105,16 @@ export default function SettingsPage() {
 
     const addChannel = async () => {
         try {
-            const token = localStorage.getItem('token');
             // Basic validation
             if (!newChannel.name) return toast.error("Name is required");
             
-            await axios.post('http://localhost:3000/notifications', newChannel, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post('/notifications', newChannel);
             toast.success("Channel added");
             setNewChannel({ name: '', type: 'EMAIL', config: {} }); // Reset form
             setIsAddChannelOpen(false);
             
             // Refresh channels
-            const res = await axios.get('http://localhost:3000/notifications', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/notifications');
             setChannels(res.data);
         } catch (e) {
             toast.error("Failed to add channel");
@@ -144,10 +123,7 @@ export default function SettingsPage() {
 
     const deleteChannel = async (id: string) => {
          try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:3000/notifications/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/notifications/${id}`);
             toast.success("Channel deleted");
             setChannels(channels.filter(c => c.id !== id));
         } catch (e) {
@@ -157,12 +133,9 @@ export default function SettingsPage() {
 
     const generateInvite = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.post('http://localhost:3000/organization/invites', { role: inviteRole }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.post('/organization/invites', { role: inviteRole });
             // Assume response contains invite ID/Token
-            const link = `http://localhost:3000/register?invite=${res.data.id}`;
+            const link = `${window.location.origin}/register?invite=${res.data.id}`;
             setInviteLink(link);
             toast.success("Invitation generated");
         } catch (e) {
@@ -242,10 +215,7 @@ export default function SettingsPage() {
                                     className="bg-primary text-black font-bold"
                                     onClick={async () => {
                                         try {
-                                            const token = localStorage.getItem('token');
-                                            await axios.patch('http://localhost:3000/organization/me', { name: profile.organization.name }, {
-                                                headers: { Authorization: `Bearer ${token}` }
-                                            });
+                                            await api.patch('/organization/me', { name: profile.organization.name });
                                             toast.success("Organization name updated");
                                         } catch(e) { toast.error("Failed to update"); }
                                     }}

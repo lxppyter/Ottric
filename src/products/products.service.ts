@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { Release } from './entities/release.entity';
 import { User } from '../users/entities/user.entity';
+import { BillingService } from '../billing/billing.service';
 
 @Injectable()
 export class ProductsService {
@@ -14,24 +15,46 @@ export class ProductsService {
     private releasesRepository: Repository<Release>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private billingService: BillingService,
   ) {}
 
   async ensureProduct(name: string, userId: string): Promise<Product> {
-    const user = await this.usersRepository.findOne({ where: { id: userId }, relations: ['organization'] });
-    if (!user || !user.organization) throw new Error('User or Organization not found');
-
-    let product = await this.productsRepository.findOne({ 
-        where: { 
-            name, 
-            organization: { id: user.organization.id } 
-        } 
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['organization'],
     });
-    
+    if (!user) throw new Error('User not found');
+    if (!user.organization)
+      throw new Error(
+        'User has no organization. Please join an organization to create projects.',
+      );
+
+    let product = await this.productsRepository.findOne({
+      where: {
+        name,
+        organization: { id: user.organization.id },
+      },
+    });
+
     if (!product) {
-      product = this.productsRepository.create({ 
-          name, 
-          organization: user.organization 
-          // owner: user // Deprecated or keep as creator? Let's just use org.
+      // Check Plan Limits
+      const subscription = await this.billingService.getCurrentSubscription(
+        user.organization.id,
+      );
+      const currentProductCount = await this.productsRepository.count({
+        where: { organization: { id: user.organization.id } },
+      });
+
+      if (currentProductCount >= subscription.features.maxProjects) {
+        throw new ForbiddenException(
+          `Project limit reached for ${subscription.plan} plan (${subscription.features.maxProjects} max). Please upgrade to create more projects.`,
+        );
+      }
+
+      product = this.productsRepository.create({
+        name,
+        organization: user.organization,
+        // owner: user // Deprecated or keep as creator? Let's just use org.
       });
       await this.productsRepository.save(product);
     }
@@ -59,17 +82,60 @@ export class ProductsService {
       release.buildId = buildId || null;
       release.imageDigest = imageDigest || null;
       release.platform = platform || null;
-      
+
       await this.releasesRepository.save(release);
     } else {
-        // Update metadata if exists (idempotency)
-        if (commitSha) release.commitSha = commitSha;
-        if (buildId) release.buildId = buildId;
-        if (imageDigest) release.imageDigest = imageDigest;
-        if (platform) release.platform = platform;
-        await this.releasesRepository.save(release);
+      // Update metadata if exists (idempotency)
+      release.product = product; // IMPORTANT: Ensure relation is loaded/set
+      if (commitSha) release.commitSha = commitSha;
+      if (buildId) release.buildId = buildId;
+      if (imageDigest) release.imageDigest = imageDigest;
+      if (platform) release.platform = platform;
+      await this.releasesRepository.save(release);
     }
 
     return release;
+  }
+
+  async findAll(): Promise<Product[]> {
+    return this.productsRepository.find({ relations: ['organization'] });
+  }
+
+  async findLatestRelease(productId: string): Promise<Release | null> {
+    return this.releasesRepository.findOne({
+      where: { product: { id: productId } },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getOrganizationMembers(orgId: string): Promise<User[]> {
+    return this.usersRepository.find({
+      where: { organization: { id: orgId } },
+    });
+  }
+
+  async deleteProduct(productId: string, orgId: string) {
+    const product = await this.productsRepository.findOne({
+      where: { id: productId },
+      relations: ['organization'],
+    });
+    if (!product) throw new Error('Product not found');
+    if (product.organization.id !== orgId)
+      throw new ForbiddenException('Unauthorized');
+
+    return this.productsRepository.remove(product);
+  }
+
+  async renameProduct(productId: string, newName: string, orgId: string) {
+    const product = await this.productsRepository.findOne({
+      where: { id: productId },
+      relations: ['organization'],
+    });
+    if (!product) throw new Error('Product not found');
+    if (product.organization.id !== orgId)
+      throw new ForbiddenException('Unauthorized');
+
+    product.name = newName;
+    return this.productsRepository.save(product);
   }
 }

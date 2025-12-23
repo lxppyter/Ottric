@@ -2,11 +2,13 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, ShieldAlert, Clock, ChevronRight, Archive } from 'lucide-react';
+import { Search, Filter, ShieldAlert, Clock, ChevronRight, Archive, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/axios';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { toast } from 'sonner';
 
 interface Project {
     id: string;
@@ -22,6 +24,7 @@ export default function ProjectsPage() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchProjects = async () => {
@@ -29,9 +32,7 @@ export default function ProjectsPage() {
                 const token = localStorage.getItem('token');
                 if (!token) return;
 
-                const res = await axios.get('http://localhost:3000/portal/projects', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await api.get('/portal/projects');
                 setProjects(res.data);
             } catch (error) {
                 console.error("Failed to fetch projects");
@@ -41,6 +42,19 @@ export default function ProjectsPage() {
         };
         fetchProjects();
     }, []);
+
+    const handleDelete = async () => {
+        if (!projectToDelete) return;
+        try {
+            await api.delete(`/products/${projectToDelete}`);
+            setProjects(projects.filter(p => p.id !== projectToDelete));
+            setProjectToDelete(null);
+            toast.success("Project deleted successfully");
+        } catch (error) {
+            console.error("Failed to delete project");
+            toast.error("Failed to delete project");
+        }
+    };
 
     const filteredProjects = projects.filter(p => 
         p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -66,6 +80,21 @@ export default function ProjectsPage() {
                     </div>
                 </div>
             </div>
+
+            <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+                <AlertDialogContent className="bg-[#0A0A0A] border-white/10 text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the project and all its associated data (SBOMs, VEX statements).
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20">Delete Project</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {loading ? (
                  <div className="grid gap-6 md:grid-cols-3">
@@ -98,8 +127,21 @@ export default function ProjectsPage() {
                                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center border border-white/5 mb-4 group-hover:scale-110 transition-transform">
                                         <Archive className="w-5 h-5 text-primary" />
                                     </div>
-                                    <div className={`px-2 py-1 rounded text-xs font-mono font-bold border ${project.riskCount > 0 ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                                        {project.riskCount > 0 ? `${project.riskCount} CRITICAL` : 'SECURE'}
+                                    <div className="flex gap-2">
+                                         <Button 
+                                            size="icon" 
+                                            variant="ghost" 
+                                            className="h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setProjectToDelete(project.id);
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                        <div className={`px-2 py-1 rounded text-xs font-mono font-bold border ${project.riskCount > 0 ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                                            {project.riskCount > 0 ? `${project.riskCount} CRITICAL` : 'SECURE'}
+                                        </div>
                                     </div>
                                 </div>
                                 <CardTitle className="text-lg font-bold truncate pr-4">{project.name}</CardTitle>

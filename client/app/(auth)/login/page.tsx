@@ -7,6 +7,7 @@ import { ArrowRight, Mail, Lock, Shield, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner"
 import axios from 'axios';
+import api from '@/lib/axios';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       console.log("Attempting login with:", { username: email, passwordLen: password.length }); // DEBUG
-      const response = await axios.post('http://localhost:3000/auth/login', {
+      const response = await api.post('/auth/login', {
         email: email,
         password: password
       });
@@ -33,13 +34,20 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } catch (error) {
-      console.error('Login failed error obj:', error);
-      let message = 'Unknown error';
+      console.error('Login failed:', error);
+      let message = 'Access Denied';
+      
       if (axios.isAxiosError(error)) {
-        console.log("Axios error response:", error.response?.data); // DEBUG
-        message = error.response?.data?.message || message;
+        if (error.response?.status === 401) {
+            message = 'Invalid email identity or password sequence.';
+        } else {
+            message = error.response?.data?.message || message;
+        }
       }
-      toast.error('Login failed: ' + message);
+      
+      toast.error("Authentication Failed", {
+          description: message
+      });
     } finally {
       setLoading(false);
     }
@@ -103,9 +111,6 @@ export default function LoginPage() {
                   <Lock className="w-3 h-3" />
                   Passcode
                 </Label>
-                <Link href="/forgot-password" className="text-[10px] text-primary/80 hover:text-primary hover:underline transition-colors uppercase tracking-widest font-bold">
-                  Lost Key?
-                </Link>
               </div>
               <div className="relative">
                 <Input
@@ -135,6 +140,13 @@ export default function LoginPage() {
                 )}
               </span>
             </Button>
+
+            {/* Lost Key Link - Positioned below Submit */}
+            <div className="text-center mt-1">
+               <Link href="/forgot-password" className="text-[10px] text-muted-foreground/60 hover:text-primary transition-colors uppercase tracking-widest font-bold">
+                  Lost Key?
+               </Link>
+            </div>
 
             {/* Divider */}
             <div className="relative my-6">

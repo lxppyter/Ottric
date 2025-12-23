@@ -6,10 +6,7 @@ import { NotificationChannel } from './entities/notification-channel.entity';
 import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([NotificationChannel]),
-    UsersModule
-  ],
+  imports: [TypeOrmModule.forFeature([NotificationChannel]), UsersModule],
   controllers: [NotificationsController],
   providers: [NotificationsService],
   exports: [NotificationsService],

@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, CreateDateColumn, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  JoinColumn,
+} from 'typeorm';
 import { Product } from './product.entity';
 import { Sbom } from '../../sbom/entities/sbom.entity';
 
@@ -22,13 +31,18 @@ export class Release {
   @Column({ type: 'text', nullable: true })
   platform: string | null;
 
-  @ManyToOne(() => Product, product => product.releases)
+  @ManyToOne(() => Product, (product) => product.releases, {
+    onDelete: 'CASCADE',
+  })
   product: Product;
 
-  @OneToOne(() => Sbom, sbom => sbom.release)
+  @OneToOne(() => Sbom, (sbom) => sbom.release)
   @JoinColumn()
   sbom: Sbom;
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

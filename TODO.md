@@ -1,9 +1,5 @@
-1- Pricing / Billing Entegrasyonu eklenecek.
-
-2- Continuous Monitoring (Cron Jobs ile periyodik tarama) eklenecek.
-
-3- Login / Logout sayfa gezinmelerinde jwt sorununu düzeltmeliyiz. Logout yapmadan anasayfaya gidiyorum. Tekrar login sayfasına atıyor beni. ya da logout yapıyorum ama localhost:3000/dashboard yazıyorum beni dashboarda sayfasına atıyor beni.(dene)
-
-4- Sbom parse işlemi veritabanına kayıt ediliyor. tek projeden 200 kayıt oluşuyor. bunu nasıl optimize edebiliriz?
-
-5- Readme sayfası ve API dokümantasyonu güncellenecek.
+1) Ödeme (Stripe/LemonSqueezy): Ödeme altyapısı ve Plan (Free/Pro) ayrımı.
+2) Mail Servisi (Real): Mock yapının Resend/SendGrid ile değişmesi.
+3) Audit Logs UI: "Kim ne yaptı?" ekranının arayüze eklenmesi.
+4) Password Change: Ayarlar'dan şifre değiştirebilme.
+5) Kullanım Kotaları: "5/50 hak kaldı" gibi limit göstergeleri.

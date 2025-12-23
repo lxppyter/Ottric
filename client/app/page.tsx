@@ -1,18 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Shield, Sparkles, Activity, Share2, CheckCircle, Server, GitBranch, Database, MessageSquare, Box } from 'lucide-react';
+import { ArrowRight, Shield, Sparkles, Activity, Share2, CheckCircle, Server, GitBranch, Database, MessageSquare, Box, Loader2, Code, Cpu, Lock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from 'react';
+import { toast } from "sonner";
+import api from '@/lib/axios';
+import { Input } from '@/components/ui/input';
 
 export default function LandingPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem('token'));
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden selection:bg-primary/30">
       
       {/* Background Effects */}
       <div className="fixed inset-0 bg-cyberpunk-grid pointer-events-none" />
-      <div className="fixed top-[-20%] left-[-10%] w-[800px] h-[800px] rounded-full diffusion-primary diffusion-blob opacity-20" />
-      <div className="fixed bottom-[-20%] right-[-10%] w-[800px] h-[800px] rounded-full diffusion-secondary diffusion-blob opacity-20" />
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center max-w-7xl mx-auto backdrop-blur-sm">
@@ -23,14 +31,24 @@ export default function LandingPage() {
            <span className="font-bold tracking-widest uppercase text-sm">Ottric</span>
         </div>
         <div className="flex items-center gap-4">
-             <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors uppercase tracking-widest hidden md:block">
-                Login
-             </Link>
-             <Link href="/register">
-                <Button variant="outline" className="rounded-full border-white/20 bg-white/5 hover:bg-primary hover:text-black hover:border-primary transition-all duration-300 font-bold uppercase tracking-widest text-xs h-9 px-6">
-                    Get Access
-                </Button>
-             </Link>
+             {isLoggedIn ? (
+                 <Link href="/dashboard">
+                    <Button variant="outline" className="rounded-full border-white/20 bg-white/5 hover:bg-primary hover:text-black hover:border-primary transition-all duration-300 font-bold uppercase tracking-widest text-xs h-9 px-6">
+                        Dashboard
+                    </Button>
+                 </Link>
+             ) : (
+                 <>
+                     <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors uppercase tracking-widest hidden md:block">
+                        Login
+                     </Link>
+                     <Link href="/register">
+                        <Button variant="outline" className="rounded-full border-white/20 bg-white/5 hover:bg-primary hover:text-black hover:border-primary transition-all duration-300 font-bold uppercase tracking-widest text-xs h-9 px-6">
+                            Get Access
+                        </Button>
+                     </Link>
+                 </>
+             )}
         </div>
       </nav>
 
@@ -43,7 +61,7 @@ export default function LandingPage() {
                SBOM + VEX Automation
              </Badge>
            </div>
-           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-none text-glow">
+           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-none">
               Automate <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">Compliance.</span>
               <br />
               Unblock <span className="text-white/80">Sales.</span>
@@ -53,13 +71,17 @@ export default function LandingPage() {
              <span className="text-white font-medium"> The unified trust protocol for modern software delivery.</span>
            </p>
            <div className="flex flex-col md:flex-row gap-4 justify-center items-center pt-8">
-              <Button size="lg" className="h-14 px-10 rounded-2xl bg-gradient-to-r from-primary to-secondary text-black font-black uppercase tracking-widest hover:scale-105 transition-transform duration-300 shadow-[0_0_30px_rgba(212,93,133,0.3)] border-none">
-                 Request Demo
-                 <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button size="lg" variant="outline" className="h-14 px-10 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold uppercase tracking-widest backdrop-blur-sm">
-                 10-min Setup
-              </Button>
+              <Link href="#waitlist">
+                <Button size="lg" className="h-14 px-10 rounded-2xl bg-gradient-to-r from-primary to-secondary text-black font-black uppercase tracking-widest hover:scale-105 transition-transform duration-300 shadow-[0_0_30px_rgba(212,93,133,0.3)] border-none">
+                   Join the Waitlist
+                   <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+              <Link href="#how-it-works">
+                <Button size="lg" variant="outline" className="h-14 px-10 rounded-full border-white/20 bg-white/5 hover:bg-primary hover:text-black hover:border-primary transition-all duration-300 font-bold uppercase tracking-widest backdrop-blur-sm">
+                   How it Works?
+                </Button>
+              </Link>
            </div>
            <div className="pt-12 flex justify-center gap-8 text-xs font-mono text-muted-foreground uppercase tracking-widest opacity-60">
               <span className="flex items-center gap-2"><CheckCircle className="w-3 h-3 text-primary" /> CI/CD Native</span>
@@ -70,7 +92,7 @@ export default function LandingPage() {
       </section>
 
       {/* 2. Problem Section */}
-      <section className="py-24 px-6 relative z-10">
+      <section className="py-40 px-6 relative z-10">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <h2 className="text-4xl md:text-6xl font-black leading-none mb-8 tracking-tighter">
@@ -101,7 +123,7 @@ export default function LandingPage() {
       </section>
 
       {/* 3. Solution Section */}
-      <section className="py-24 px-6 relative">
+      <section className="py-40 px-6 relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter">SBOM Ops + VEX Ops + Customer Delivery.</h2>
@@ -129,7 +151,7 @@ export default function LandingPage() {
       </section>
 
       {/* 4. How It Works */}
-      <section className="py-24 px-6 bg-secondary/5 border-y border-white/5 relative overflow-hidden">
+      <section id="how-it-works" className="py-40 px-6 bg-secondary/5 border-y border-white/5 relative overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-black mb-16 text-center tracking-tighter"><span className="text-primary">How it Works</span> (4 Steps)</h2>
           <div className="grid md:grid-cols-4 gap-8 relative z-10">
@@ -155,7 +177,7 @@ export default function LandingPage() {
       </section>
 
       {/* 5. Core Features */}
-      <section className="py-24 px-6">
+      <section className="py-40 px-6">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <h2 className="text-4xl md:text-5xl font-black mb-8 tracking-tighter">Not just SBOMs.<br/><span className="text-secondary">Operations, Proof, Delivery.</span></h2>
@@ -213,14 +235,14 @@ export default function LandingPage() {
                 </div>
              </div>
              {/* Glow */}
-             <div className="absolute -inset-10 bg-gradient-to-r from-primary to-secondary opacity-20 blur-3xl -z-10 rounded-full" />
+             <div className="absolute -inset-10 bg-gradient-to-r from-primary to-secondary opacity-5 blur-3xl -z-10 rounded-full" />
           </div>
         </div>
       </section>
 
       {/* 6. Use Cases */}
-      <section className="py-24 px-6 bg-black/40">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-20 px-6 bg-black/40">
+        <div className="max-w-7xl mx-auto w-full">
             <h2 className="text-center text-4xl md:text-5xl font-black mb-16 tracking-tighter">Who is this for?</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
@@ -229,9 +251,9 @@ export default function LandingPage() {
                     { title: "SDK Providers", subtitle: "Library Vendors" },
                     { title: "On-Prem Vendors", subtitle: "Self-hosted Distros" }
                 ].map((uc, i) => (
-                    <div key={i} className="glass-panel p-8 text-center hover:bg-primary/20 transition-colors border border-primary/20 group cursor-pointer">
-                        <h3 className="text-lg font-bold uppercase mb-2 group-hover:text-primary transition-colors">{uc.title}</h3>
-                        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">{uc.subtitle}</p>
+                    <div key={i} className="glass-panel p-12 text-center hover:bg-primary/20 transition-colors border border-primary/20 group cursor-pointer flex flex-col justify-center min-h-[240px]">
+                        <h3 className="text-2xl font-bold uppercase mb-4 group-hover:text-primary transition-colors">{uc.title}</h3>
+                        <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest">{uc.subtitle}</p>
                     </div>
                 ))}
             </div>
@@ -250,7 +272,7 @@ export default function LandingPage() {
       </section>
 
       {/* 8. Differentiation */}
-      <section className="py-24 px-6">
+      <section className="py-40 px-6">
          <div className="max-w-7xl mx-auto">
             <div className="mb-16 text-center lg:text-left">
                 <h2 className="text-4xl md:text-5xl font-black mb-4 tracking-tighter">Generating SBOMs is a commodity.</h2>
@@ -275,189 +297,348 @@ export default function LandingPage() {
          </div>
       </section>
       
-      {/* 9. Security & Trust */}
-      <section className="py-24 px-6 bg-secondary/5">
-         <div className="max-w-4xl mx-auto text-center">
-             <h2 className="text-4xl font-black mb-12 tracking-tighter">Security & Control is Yours.</h2>
-             <div className="flex flex-wrap justify-center gap-4">
-                 {["Tenant Isolation & RBAC", "Retention & Access Logs", "Optional Self-Host / VPC", "Signing / Attestation"].map((tag, i) => (
-                    <div key={i} className="px-6 py-3 border border-white/10 rounded-full bg-black/40 backdrop-blur-sm text-sm font-medium uppercase tracking-wide flex items-center gap-2">
-                        <Shield className="w-3 h-3 text-secondary" />
-                        {tag}
-                    </div>
-                 ))}
-             </div>
-         </div>
-      </section>
 
-      {/* 10. Integrations */}
-      <section className="py-24 px-6">
-          <div className="max-w-7xl mx-auto">
-             <h2 className="text-4xl font-black mb-16 text-center tracking-tighter">Fits Your Existing Workflow.</h2>
-             <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
-                {[
-                    { cat: "SCM", items: ["GitHub", "GitLab"] },
-                    { cat: "CI", items: ["Actions", "Jenkins", "CircleCI"] },
-                    { cat: "Registry", items: ["GHCR", "ECR", "DockerHub"] },
-                    { cat: "Ticketing", items: ["Jira", "Linear"] },
-                    { cat: "Chat", items: ["Slack", "Teams"] }
-                ].map((sect, i) => (
-                    <div key={i} className="space-y-6 text-center">
-                        <div className="inline-block p-3 rounded-xl bg-white/5 mb-2">
-                            {i === 0 && <GitBranch className="w-6 h-6 text-primary"/>}
-                            {i === 1 && <Server className="w-6 h-6 text-secondary"/>}
-                            {i === 2 && <Database className="w-6 h-6 text-accent"/>}
-                            {i === 3 && <Box className="w-6 h-6 text-pink-400"/>}
-                            {i === 4 && <MessageSquare className="w-6 h-6 text-blue-400"/>}
+
+      {/* 9 & 10. Split: Security & Integrations */}
+      <section className="py-40 px-6 bg-secondary/5 border-y border-white/5">
+          <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16">
+             
+             {/* Left: Security */}
+             <div className="flex flex-col justify-center">
+                 <h2 className="text-4xl font-black mb-8 tracking-tighter">Security & Control is Yours.</h2>
+                 <p className="text-lg text-muted-foreground mb-8 font-light">
+                    Built for the most demanding compliance standards. Your data is isolated, encrypted, and yours.
+                 </p>
+                 <div className="flex flex-wrap gap-3">
+                     {["Tenant Isolation & RBAC", "Retention & Access Logs", "Optional Self-Host / VPC", "Signing / Attestation"].map((tag, i) => (
+                        <div key={i} className="px-5 py-2.5 border border-white/10 rounded-lg bg-black/40 backdrop-blur-sm text-sm font-medium uppercase tracking-wide flex items-center gap-2">
+                            <Shield className="w-3 h-3 text-secondary" />
+                            {tag}
                         </div>
-                        <h3 className="font-bold uppercase text-sm tracking-widest text-muted-foreground">{sect.cat}</h3>
-                        <ul className="space-y-2 text-sm font-medium text-white/80">
-                            {sect.items.map(s => <li key={s}>{s}</li>)}
-                        </ul>
-                    </div>
-                ))}
+                     ))}
+                 </div>
              </div>
+
+             {/* Right: Integrations */}
+             <div>
+                 <h2 className="text-4xl font-black mb-8 tracking-tighter text-right lg:text-left">Fits Your Workflow.</h2>
+                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {[
+                        { cat: "SCM", items: ["GitHub", "GitLab"] },
+                        { cat: "CI/CD", items: ["Actions", "Jenkins", "CircleCI"] },
+                        { cat: "Registry", items: ["GHCR", "ECR", "DockerHub"] },
+                        { cat: "Ticketing", items: ["Jira", "Linear"] },
+                        { cat: "Chat", items: ["Slack", "Teams"] }
+                    ].map((sect, i) => (
+                        <div key={i} className="glass-panel p-5 rounded-xl border border-white/5 hover:bg-white/5 transition-all text-center">
+                            <h3 className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground mb-3">{sect.cat}</h3>
+                            <div className="flex flex-wrap gap-1.5 justify-center">
+                                {sect.items.map(s => (
+                                    <span key={s} className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase text-white/90 bg-white/5 border border-white/5">
+                                        {s}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                 </div>
+             </div>
+
           </div>
       </section>
 
-      {/* 11. Pricing Teaser */}
-      <section className="py-24 px-6 bg-gradient-to-b from-transparent to-black/80">
-          <div className="max-w-4xl mx-auto text-center">
-              <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter">Price scales as you grow.</h2>
-              <p className="text-xl text-muted-foreground mb-12">Tiers based on Repo / Product / Artifact volume.</p>
-              
-              <div className="glass-panel p-8 inline-block border border-primary/20 relative group">
-                <div className="absolute inset-0 bg-primary/5 blur-xl group-hover:bg-primary/10 transition-colors" />
-                <p className="font-bold uppercase tracking-widest mb-2 text-primary relative z-10">Enterprise Ready</p>
-                <div className="text-lg relative z-10 font-medium">SSO • Self-Host Options • SLA Support</div>
+      {/* 11. Pricing Plans */}
+      <section className="py-40 px-6 bg-gradient-to-b from-transparent to-black/80" id="pricing">
+          <div className="max-w-7xl mx-auto">
+              <div className="text-center max-w-3xl mx-auto mb-16">
+                  <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter">Simple Pricing.</h2>
+                  <p className="text-xl text-muted-foreground">
+                      Start small, upgrade for <span className="text-white font-medium">Compliance & Retention</span>.
+                  </p>
               </div>
-              
-              <div className="mt-12 flex justify-center gap-4">
-                  <Button className="rounded-full px-8 py-6 text-lg font-bold bg-white text-black hover:bg-white/90">
-                    See Pricing
-                  </Button>
+
+              <div className="grid md:grid-cols-3 gap-8 items-start">
+                  
+                  {/* Free Tier */}
+                  <div className="glass-panel p-8 rounded-3xl border border-white/5 relative group hover:border-white/20 transition-colors">
+                      <div className="mb-8">
+                          <h3 className="text-lg font-bold uppercase tracking-widest text-muted-foreground mb-4">Starter</h3>
+                          <div className="flex items-baseline gap-1">
+                              <span className="text-4xl font-black text-white">$0</span>
+                              <span className="text-sm text-muted-foreground">/ month</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
+                              For individuals and testing.
+                          </p>
+                      </div>
+                      <div className="space-y-4 mb-8">
+                          {[
+                              "1 Active Project",
+                              "Unlimited SBOM Ingest",
+                              "Basic VEX Workflow",
+                              "PDF Export",
+                          ].map((feat, i) => (
+                              <div key={i} className="flex gap-3 items-center text-sm text-white/80">
+                                  <CheckCircle className="w-4 h-4 text-white/40 shrink-0" />
+                                  <span>{feat}</span>
+                              </div>
+                          ))}
+                           <div className="flex gap-3 items-center text-sm text-muted-foreground/50 line-through decoration-white/20">
+                                  <CheckCircle className="w-4 h-4 text-white/10 shrink-0" />
+                                  <span>Audit History</span>
+                           </div>
+                           <div className="flex gap-3 items-center text-sm text-muted-foreground/50 line-through decoration-white/20">
+                                  <CheckCircle className="w-4 h-4 text-white/10 shrink-0" />
+                                  <span>Retained Justifications</span>
+                           </div>
+                      </div>
+                      <Button className="w-full bg-white/5 hover:bg-white text-white hover:text-black border border-white/10 rounded-xl h-12 font-bold uppercase tracking-wide transition-all">
+                          Start Free
+                      </Button>
+                  </div>
+
+                  {/* Pro Tier - Highlighted */}
+                  <div className="glass-panel p-8 rounded-3xl border-2 border-primary/50 relative group bg-primary/5 -mt-4 shadow-[0_0_50px_rgba(212,93,133,0.1)]">
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-primary to-secondary text-black font-black text-[10px] tracking-widest uppercase px-4 py-1.5 rounded-full">
+                          Most Popular
+                      </div>
+                      <div className="mb-8">
+                          <h3 className="text-lg font-bold uppercase tracking-widest text-primary mb-4">Pro</h3>
+                          <div className="flex items-baseline gap-1">
+                              <span className="text-4xl font-black text-white">$49</span>
+                              <span className="text-sm text-muted-foreground">/ month</span>
+                          </div>
+                          <p className="text-sm text-white/80 mt-4 leading-relaxed">
+                              For teams requiring compliance.
+                          </p>
+                      </div>
+                      <div className="space-y-4 mb-8">
+                          {[
+                              "Unlimited Projects",
+                              "Full Audit Trail & History",
+                              "Retained VEX Justifications",
+                              "Release Lineage Tracking",
+                              "Customer Portal Access",
+                              "API Access"
+                          ].map((feat, i) => (
+                              <div key={i} className="flex gap-3 items-center text-sm font-medium text-white">
+                                  <CheckCircle className="w-4 h-4 text-primary shrink-0" />
+                                  <span>{feat}</span>
+                              </div>
+                          ))}
+                      </div>
+                      <Button className="w-full bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 border-0 rounded-xl h-12 font-bold uppercase tracking-wide shadow-lg shadow-primary/20">
+                          Start Pro
+                      </Button>
+                      <p className="text-[10px] text-center mt-4 text-primary/60 uppercase tracking-widest font-mono">
+                          Compliance Ready
+                      </p>
+                  </div>
+
+                  {/* Enterprise Tier */}
+                  <div className="glass-panel p-8 rounded-3xl border border-white/5 relative group hover:border-white/20 transition-colors">
+                      <div className="mb-8">
+                          <h3 className="text-lg font-bold uppercase tracking-widest text-muted-foreground mb-4">Enterprise</h3>
+                          <div className="flex items-baseline gap-1">
+                              <span className="text-4xl font-black text-white">Custom</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
+                              For large scale organizations.
+                          </p>
+                      </div>
+                      <div className="space-y-4 mb-8">
+                          {[
+                              "Everything in Pro",
+                              "SSO (Okta, SAML)",
+                              "SLA Support",
+                              "Self-Hosted / VPC Option",
+                              "Custom Data Retention",
+                              "Dedicated Account Manager"
+                          ].map((feat, i) => (
+                              <div key={i} className="flex gap-3 items-center text-sm text-white/80">
+                                  <CheckCircle className="w-4 h-4 text-white/40 shrink-0" />
+                                  <span>{feat}</span>
+                              </div>
+                          ))}
+                      </div>
+                      <Button variant="outline" className="w-full bg-transparent hover:bg-white text-white hover:text-black border border-white/20 rounded-xl h-12 font-bold uppercase tracking-wide transition-all">
+                          Contact Sales
+                      </Button>
+                  </div>
+
               </div>
           </div>
       </section>
 
       {/* 12. FAQ */}
-      <section className="py-24 px-6">
-        <div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl font-black mb-12 text-center tracking-tighter">FAQ</h2>
-            <div className="space-y-4">
+      <section className="py-40 px-6">
+        <div className="max-w-7xl mx-auto">
+            <h2 className="text-4xl font-black mb-16 text-center tracking-tighter">FAQ</h2>
+            <div className="grid md:grid-cols-2 gap-6">
                 {[
                     { q: "We already generate SBOMs, do we need this?", a: "Yes. Generating is not enough; Release lineage + Customer Delivery + VEX decision/proof is the real burden we solve." },
                     { q: "Which formats do you support?", a: "We work with SPDX and CycloneDX; normalizing them to manage in a single model." },
                     { q: "Who fills out the VEX?", a: "Your Security or Maintenance teams. The platform provides flows for justification and approval." },
-                    { q: "Is the Customer Portal mandatory?", a: "No. You can use API/Export only. But the Portal speeds up procurement significantly." }
+                    { q: "Is the Customer Portal mandatory?", a: "No. You can use API/Export only. But the Portal speeds up procurement significantly." },
+                    { q: "Can I host this on-premise?", a: "Yes. Our Enterprise plan includes options for VPC and self-hosted deployments for complete data isolation." },
+                    { q: "Does it integrate with Jira?", a: "Absolutely. We can sync VEX status changes directly to Jira tickets to keep your engineering team in the loop." },
+                    { q: "What about legacy projects?", a: "You can manually upload SBOMs for legacy applications that aren't in your active CI/CD pipeline." },
+                    { q: "Is my data secure?", a: "We follow SOC2 Type II standards. All data is encrypted at rest and in transit, with optional tenant isolation." }
                 ].map((faq, i) => (
-                    <div key={i} className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-colors">
-                        <h3 className="font-bold text-lg mb-2 text-white">{faq.q}</h3>
-                        <p className="text-muted-foreground leading-relaxed">{faq.a}</p>
+                    <div key={i} className="glass-panel p-8 rounded-3xl hover:bg-white/5 transition-colors border border-white/5">
+                        <h3 className="font-bold text-lg mb-3 text-white">{faq.q}</h3>
+                        <p className="text-muted-foreground leading-relaxed text-sm font-light">{faq.a}</p>
                     </div>
                 ))}
             </div>
         </div>
       </section>
 
-      {/* 13. Final CTA */}
-      <section className="py-40 px-6 relative overflow-hidden text-center">
+      {/* 13. Final CTA - Waitlist */}
+      <section id="waitlist" className="py-40 px-6 relative overflow-hidden text-center">
           <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent pointer-events-none" />
-          <div className="max-w-5xl mx-auto relative z-10">
+          <div className="max-w-3xl mx-auto relative z-10">
               <h2 className="text-5xl md:text-7xl font-black mb-8 leading-tight tracking-tighter">
-                  Don&apos;t let SBOM requests<br/>slow down sales.
+                  Join the <span className="text-primary">Waitlist.</span>
               </h2>
-              <p className="text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto font-light">
-                  Automate SBOM + VEX per release. Give your customer a single link. Save your security team from Excel.
+              <p className="text-xl text-muted-foreground mb-12 max-w-xl mx-auto font-light">
+                  Secure your spot in the unified trust protocol. Early access includes white-glove onboarding.
               </p>
-              <div className="flex flex-col md:flex-row gap-6 justify-center">
-                  <Button size="lg" className="h-16 px-12 text-xl bg-gradient-to-r from-primary to-secondary text-white border-0 rounded-2xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-transform">
-                      Request Demo
-                  </Button>
-                   <Button size="lg" variant="outline" className="h-16 px-12 text-xl border-white/10 bg-white/5 text-white hover:bg-white/10 rounded-2xl font-bold uppercase tracking-widest backdrop-blur-md">
-                      Setup Guide
-                  </Button>
-              </div>
+              
+              <WaitlistForm />
+              
           </div>
       </section>
 
-      {/* Brutalist Footer */}
-      <footer className="bg-black text-white border-t-4 border-white overflow-hidden relative z-50">
-         <div className="grid md:grid-cols-4 divide-y md:divide-y-0 md:divide-x-4 divide-white">
+      {/* Glassmorphism Footer */}
+      <footer className="relative z-50 pt-32 pb-16 px-6 border-t border-white/10 bg-black/90">
+          <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-12 mb-16">
             
-            {/* Column 1: Brand & Identity */}
-            <div className="p-8 flex flex-col justify-between h-full bg-secondary/10">
-               <div>
-                 <div className="border-4 border-white p-4 inline-block bg-primary mb-6 shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
-                   <Shield className="w-8 h-8 text-black" />
-                 </div>
-                 <h2 className="text-4xl font-black uppercase tracking-tighter mb-2">OTTRIC<br/>SEC</h2>
-                 <p className="font-mono text-xs text-white/70">
-                    SECURE YOUR PIPELINE.<br/>
-                    NO COMPROMISES.
-                 </p>
-               </div>
-               <div className="mt-8 font-mono text-[10px]">
-                  SYSTEM_STATUS: <span className="text-green-400 animate-pulse">● ONLINE</span>
-               </div>
-            </div>
-
-            {/* Column 2: Navigation - Product */}
-            <div className="p-8">
-               <h3 className="font-mono text-sm font-bold uppercase tracking-widest mb-6 border-b-2 border-white/20 pb-2 text-secondary">Directory_01 // Product</h3>
-               <ul className="space-y-4 font-bold uppercase tracking-wide">
-                  {['Features', 'Integrations', 'Pricing', 'Documentation', 'Changelog'].map((item) => (
-                     <li key={item}>
-                        <Link href="#" className="hover:bg-white hover:text-black px-1 -ml-1 transition-all inline-block hover:scale-105">
-                           {item}
-                        </Link>
-                     </li>
-                  ))}
-               </ul>
-            </div>
-
-            {/* Column 3: Navigation - Company */}
-            <div className="p-8">
-               <h3 className="font-mono text-sm font-bold uppercase tracking-widest mb-6 border-b-2 border-white/20 pb-2 text-primary">Directory_02 // Company</h3>
-               <ul className="space-y-4 font-bold uppercase tracking-wide">
-                  {['About Us', 'Careers', 'Blog', 'Contact', 'Partners'].map((item) => (
-                     <li key={item}>
-                        <Link href="#" className="hover:bg-white hover:text-black px-1 -ml-1 transition-all inline-block hover:scale-105">
-                           {item}
-                        </Link>
-                     </li>
-                  ))}
-               </ul>
-            </div>
-
-            {/* Column 4: Newsletter / Legal */}
-            <div className="flex flex-col">
-               <div className="p-8 flex-1">
-                  <h3 className="font-mono text-sm font-bold uppercase tracking-widest mb-6 text-accent">Subscribe_Protocol</h3>
-                  <div className="space-y-4">
-                     <p className="text-xs font-mono text-white/60">Join the secure transmission list.</p>
-                     <div className="flex gap-0">
-                        <input type="email" placeholder="EMAIL_ADDR" className="bg-white/10 border-2 border-white border-r-0 px-4 py-2 w-full font-mono text-sm placeholder:text-white/30 focus:outline-none focus:bg-white/20" />
-                        <button className="bg-white text-black font-bold uppercase px-4 py-2 hover:bg-primary transition-colors border-2 border-white border-l-0">
-                           <ArrowRight className="w-5 h-5" />
-                        </button>
-                     </div>
+            {/* Brand */}
+            <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-black" />
                   </div>
-               </div>
-               
-               {/* Sub-footer inside col 4 */}
-               <div className="border-t-4 border-white p-6 bg-white/5">
-                  <div className="flex flex-col gap-2 font-mono text-[10px] uppercase text-white/50">
-                     <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-                     <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
-                     <span>© 2026 OTTRIC SEC INC.</span>
-                  </div>
-               </div>
+                  <span className="font-bold tracking-widest uppercase text-sm">Ottric</span>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+                  The unified trust protocol for modern software delivery. Secure your pipeline with automated compliance.
+                </p>
+                <div className="flex gap-4">
+                  {/* Social placeholders */}
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer">
+                      <div className="w-3 h-3 bg-white/40 rounded-full" />
+                    </div>
+                  ))}
+                </div>
             </div>
 
-         </div>
+            {/* Links 1 */}
+            <div>
+              <h3 className="font-bold text-sm uppercase tracking-widest mb-6">Product</h3>
+              <ul className="space-y-4 text-sm text-muted-foreground">
+                {['Features', 'Integrations', 'Pricing', 'Changelog', 'Docs'].map((item) => (
+                  <li key={item}>
+                    <Link href="#" className="hover:text-primary transition-colors">{item}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Links 2 */}
+            <div>
+              <h3 className="font-bold text-sm uppercase tracking-widest mb-6">Company</h3>
+              <ul className="space-y-4 text-sm text-muted-foreground">
+                {['About', 'Careers', 'Blog', 'Contact', 'Partners'].map((item) => (
+                  <li key={item}>
+                    <Link href="#" className="hover:text-primary transition-colors">{item}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Newsletter */}
+            <div>
+              <h3 className="font-bold text-sm uppercase tracking-widest mb-6">Subscribe</h3>
+              <p className="text-xs text-muted-foreground mb-4">Join our secure transmission list for updates.</p>
+              <div className="flex gap-2">
+                 <Input placeholder="email@domain.com" className="bg-white/5 border-white/10 h-10 text-xs focus:border-primary/50" />
+                 <Button size="sm" className="h-10 px-4 bg-primary text-black hover:bg-primary/90">
+                    <ArrowRight className="w-4 h-4" />
+                 </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
+              <p>© 2026 Ottric Sec Inc. All rights reserved.</p>
+              <div className="flex gap-6">
+                <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
+                <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
+                <Link href="#" className="hover:text-white transition-colors">Cookie Settings</Link>
+              </div>
+          </div>
       </footer>
 
     </div>
+  );
+}
+
+function WaitlistForm() {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setLoading(true);
+    try {
+      await api.post('/users/waitlist', { email });
+      setSubmitted(true);
+      toast.success("You have joined the waitlist!");
+      setEmail('');
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to join waitlist. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="glass-panel p-8 rounded-2xl max-w-md mx-auto animate-in fade-in zoom-in duration-500 border border-primary/20 bg-primary/5">
+        <CheckCircle className="w-12 h-12 text-primary mx-auto mb-4" />
+        <h3 className="text-2xl font-bold mb-2">You&apos;re on the list!</h3>
+        <p className="text-muted-foreground">We&apos;ll be in touch soon with your access invite.</p>
+        <Button onClick={() => setSubmitted(false)} variant="link" className="mt-4 text-white">Register another email</Button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 max-w-md mx-auto">
+      <Input 
+        type="email" 
+        placeholder="ENTER EMAIL_ADDRESS" 
+        className="h-14 bg-white/5 border-white/10 text-lg px-6 rounded-xl font-mono focus:border-primary/50"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        disabled={loading}
+      />
+      <Button 
+        type="submit" 
+        size="lg" 
+        className="h-14 px-8 rounded-xl bg-white text-black font-bold uppercase tracking-widest hover:bg-primary transition-colors disabled:opacity-50"
+        disabled={loading}
+      >
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join'}
+      </Button>
+      <p className="text-xs text-muted-foreground mt-4 md:hidden">Limited spots available for the beta.</p>
+    </form>
   );
 }

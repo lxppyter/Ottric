@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Key, Plus, Copy, Shield, Users, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/axios';
 import { toast } from 'sonner';
 
 export default function OrganizationPage() {
@@ -17,13 +17,10 @@ export default function OrganizationPage() {
 
     const fetchData = async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            
             const [invitesRes, membersRes, profileRes] = await Promise.all([
-                axios.get('http://localhost:3000/organization/invites', { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get('http://localhost:3000/organization/members', { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get('http://localhost:3000/users/profile', { headers: { Authorization: `Bearer ${token}` } })
+                api.get('/organization/invites'),
+                api.get('/organization/members'),
+                api.get('/users/profile')
             ]);
 
             setInvites(invitesRes.data);
@@ -43,10 +40,7 @@ export default function OrganizationPage() {
 
     const generateKey = async () => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.post('http://localhost:3000/organization/invites', {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post('/organization/invites', {});
             toast.success("New invitation key generated");
             fetchData();
         } catch (e: any) {
@@ -57,10 +51,7 @@ export default function OrganizationPage() {
 
     const deleteInvite = async (id: string) => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:3000/organization/invites/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/organization/invites/${id}`);
             toast.success("Invitation deleted");
             fetchData();
         } catch (e: any) {
@@ -72,10 +63,7 @@ export default function OrganizationPage() {
     const removeMember = async (id: string) => {
         if (!confirm('Are you sure you want to remove this member?')) return;
         try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:3000/organization/members/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/organization/members/${id}`);
             toast.success("Member removed from organization");
             fetchData();
         } catch (e: any) {

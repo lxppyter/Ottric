@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import axios from 'axios';
+import api from '@/lib/axios';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Shield, Package, FileCode, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ProjectDetailsPage({ params }: { params: Promise<{ productName: string | string[] }> }) {
     const router = useRouter();
@@ -26,16 +36,15 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
     const [selectedVersion, setSelectedVersion] = useState<string>('');
     const [auditPack, setAuditPack] = useState<any>(null);
 
+    // Bulk Update State
+    const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
+    const [bulkTargetStatus, setBulkTargetStatus] = useState<string>('');
+
     useEffect(() => {
         const fetchVersions = async () => {
             try {
-                const token = localStorage.getItem('token');
-                if (!token) return;
-
                 // 1. Fetch Product & Versions
-                const res = await axios.get(`http://localhost:3000/portal/${encodeURIComponent(productName)}/versions`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await api.get(`/portal/${encodeURIComponent(productName)}/versions`);
                 
                 setProduct(res.data.product);
                 setVersions(res.data.versions);
@@ -53,26 +62,67 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
         fetchVersions();
     }, [productName]);
 
+    const fetchAuditPack = async () => {
+        setLoading(true);
+        try {
+            // 2. Fetch Audit Pack for specific version
+            const res = await api.get(`/portal/${encodeURIComponent(productName)}/${selectedVersion}/audit-pack`);
+            setAuditPack(res.data);
+        } catch (e) {
+            console.error("Failed to fetch audit pack");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!selectedVersion) return;
-        
-        const fetchAuditPack = async () => {
-            setLoading(true);
-            try {
-                const token = localStorage.getItem('token');
-                // 2. Fetch Audit Pack for specific version
-                const res = await axios.get(`http://localhost:3000/portal/${encodeURIComponent(productName)}/${selectedVersion}/audit-pack`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setAuditPack(res.data);
-            } catch (e) {
-                console.error("Failed to fetch audit pack");
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchAuditPack();
     }, [selectedVersion, productName]);
+
+    const calculateSummary = (vexs: any[]) => {
+        const summary = {
+            affected: 0,
+            fixed: 0,
+            underInvestigation: 0,
+            notAffected: 0,
+            totalVulnerabilities: vexs.length,
+            totalComponents: auditPack.summary.totalComponents 
+        };
+
+        vexs.forEach(v => {
+            switch (v.status) {
+                case 'affected': summary.affected++; break;
+                case 'fixed': summary.fixed++; break;
+                case 'under_investigation': summary.underInvestigation++; break;
+                case 'not_affected': summary.notAffected++; break;
+            }
+        });
+        return summary;
+    };
+
+    const handleBulkUpdate = async () => {
+        if (!bulkTargetStatus || !auditPack) return;
+        const ids = auditPack.vex.map((v: any) => v.id);
+        try {
+            await api.patch('/vex/bulk-update', { ids, status: bulkTargetStatus });
+            
+            // Optimistic update
+            const updatedVex = auditPack.vex.map((v: any) => ({
+                ...v,
+                status: bulkTargetStatus
+            }));
+            const newSummary = calculateSummary(updatedVex);
+            setAuditPack({ ...auditPack, vex: updatedVex, summary: newSummary });
+            
+            setIsBulkDialogOpen(false);
+            
+            // Background refresh to ensure consistency
+            fetchAuditPack();
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
 
     if (loading && !auditPack) {
@@ -119,11 +169,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
                  <Button 
                     disabled={!selectedVersion}
                     onClick={() => {
-                        const token = localStorage.getItem('token');
-                        // Use fetch to handle auth header download, or simple window.open if no auth (but we have auth)
-                        // Using axios blob download:
-                        axios.get(`http://localhost:3000/portal/${encodeURIComponent(productName)}/${selectedVersion}/report`, {
-                            headers: { Authorization: `Bearer ${token}` },
+                        api.get(`/portal/${encodeURIComponent(productName)}/${selectedVersion}/report`, {
                             responseType: 'blob'
                         }).then((response) => {
                             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -218,6 +264,41 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
 
                     {/* VULNERABILITIES TAB */}
                     <TabsContent value="vulnerabilities" className="mt-6">
+                        {/* BULK ACTIONS */}
+                        <div className="flex items-center gap-4 mb-4 justify-end">
+                            <span className="text-xs font-mono uppercase text-muted-foreground font-bold">Bulk Update:</span>
+                            <Select onValueChange={(val) => {
+                                setBulkTargetStatus(val);
+                                setIsBulkDialogOpen(true);
+                            }}>
+                                <SelectTrigger className="w-[180px] bg-secondary/10 border-white/10 h-8 text-xs font-mono">
+                                    <SelectValue placeholder="Set All To..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="affected">Affected</SelectItem>
+                                    <SelectItem value="not_affected">Not Affected</SelectItem>
+                                    <SelectItem value="fixed">Fixed</SelectItem>
+                                    <SelectItem value="under_investigation">Under Investigation</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <AlertDialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+                                <AlertDialogContent className="bg-zinc-950 border-white/10 text-white">
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-muted-foreground">
+                                        This will update the status of {auditPack.vex.length} vulnerabilities to <span className="font-bold text-white uppercase">{bulkTargetStatus}</span>.
+                                        This action cannot be undone efficiently.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel className="bg-white/5 border-white/10 hover:bg-white/10 text-white hover:text-white">Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleBulkUpdate} className="bg-white text-black hover:bg-white/90">Confirm Update</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+
                          <Card className="bg-secondary/5 border-white/5 text-white shadow-none">
                              <div className="p-4 border-b border-white/5 flex text-xs font-mono font-bold uppercase text-muted-foreground">
                                 <div className="w-32">ID</div>
@@ -228,7 +309,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
                             </div>
                             <div className="divide-y divide-white/5">
                                 {auditPack.vex.map((v: any, i: number) => (
-                                    <div key={i} className="p-4 flex items-center text-sm hover:bg-white/5 transition-colors">
+                                    <div key={v.id || i} className="p-4 flex items-center text-sm hover:bg-white/5 transition-colors">
                                         <div className="w-32 font-bold font-mono text-red-400">{v.vulnerability.id}</div>
                                         <div className="w-32">
                                             <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
@@ -241,18 +322,16 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
                                         </div>
                                         <div className="w-40">
                                              <Select 
-                                                defaultValue={v.status} 
+                                                value={v.status} 
                                                 onValueChange={async (val) => {
                                                     try {
-                                                        const token = localStorage.getItem('token');
-                                                        await axios.patch(`http://localhost:3000/vex/${v.id}`, { status: val }, {
-                                                            headers: { Authorization: `Bearer ${token}` }
-                                                        });
+                                                        await api.patch(`/vex/${v.id}`, { status: val });
                                                         // Update local state without full reload
                                                         const newVex = [...auditPack.vex];
                                                         newVex[i].status = val;
-                                                        setAuditPack({ ...auditPack, vex: newVex });
-                                                        // toast.success("Status updated"); // Optional: reduce noise
+                                                        
+                                                        const newSummary = calculateSummary(newVex);
+                                                        setAuditPack({ ...auditPack, vex: newVex, summary: newSummary });
                                                     } catch (e) { console.error(e); }
                                                 }}
                                              >

@@ -1,0 +1,44 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "metadata": {
+    "timestamp": "2023-04-03T16:00:00Z",
+    "component": {
+      "name": "vulnerable-app",
+      "version": "1.0.0",
+      "type": "application"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "log4j-core",
+      "group": "org.apache.logging.log4j",
+      "version": "2.14.1",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+        "type": "library",
+        "name": "struts2-core",
+        "group": "org.apache.struts",
+        "version": "2.5.10",
+        "purl": "pkg:maven/org.apache.struts/struts2-core@2.5.10",
+        "licenses": [
+          {
+            "license": {
+              "id": "Apache-2.0"
+            }
+          }
+        ]
+      }
+  ]
+}

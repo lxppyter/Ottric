@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { Organization } from './organization.entity';
 import { PersonalNotification } from './personal-notification.entity';
 
@@ -25,16 +32,16 @@ export class User {
   @CreateDateColumn()
   createdAt: Date;
 
-  @ManyToOne(() => Organization, org => org.users, { nullable: true })
+  @ManyToOne(() => Organization, (org) => org.users, { nullable: true })
   organization: Organization | null;
 
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.MEMBER
+    default: UserRole.MEMBER,
   })
   role: UserRole;
 
-  @OneToMany(() => PersonalNotification, notification => notification.user)
+  @OneToMany(() => PersonalNotification, (notification) => notification.user)
   notifications: PersonalNotification[];
 }

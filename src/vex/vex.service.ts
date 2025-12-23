@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager, In } from 'typeorm';
 import { VexStatement, VexStatus } from './entities/vex-statement.entity';
 import { Sbom } from '../sbom/entities/sbom.entity';
 import { VulnService } from '../vuln/vuln.service';
 import { UpdateVexStatusDto } from './dto/update-vex-status.dto';
 import { CreateVexDto } from './dto/create-vex.dto';
+import { BulkUpdateVexDto } from './dto/bulk-update-vex.dto';
 import { Product } from '../products/entities/product.entity';
 import { Vulnerability } from '../vuln/entities/vulnerability.entity';
-import { EntityManager } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
@@ -21,182 +21,225 @@ export class VexService {
   ) {}
 
   async create(dto: CreateVexDto, userId: string) {
-    // 1. Find or Create Product
-    // Use entityManager to find valid org for user first? Or just use relation match.
-    // We need to know organization ID of the user.
-    // For now assuming we can link by userId -> organization relation query or assume implicit.
-    // Let's query user's organization first.
-    const user = await this.entityManager.findOne(User, { where: { id: userId }, relations: ['organization'] });
-    if (!user || !user.organization) throw new Error('User has no organization');
-
-    let product = await this.entityManager.findOne(Product, { 
-        where: { name: dto.productName, organization: { id: user.organization.id } } 
+    const user = await this.entityManager.findOne(User, {
+      where: { id: userId },
+      relations: ['organization'],
     });
-    
+    if (!user || !user.organization)
+      throw new Error('User has no organization');
+
+    let product = await this.entityManager.findOne(Product, {
+      where: {
+        name: dto.productName,
+        organization: { id: user.organization.id },
+      },
+    });
+
     if (!product) {
-        product = this.entityManager.create(Product, { 
-            name: dto.productName, 
-            version: '1.0.0',
-            organization: user.organization
-        });
-        await this.entityManager.save(product);
+      product = this.entityManager.create(Product, {
+        name: dto.productName,
+        version: '1.0.0',
+        organization: user.organization,
+      });
+      await this.entityManager.save(product);
     }
 
-    // 2. Find or Create Vulnerability
-    let vuln = await this.entityManager.findOne(Vulnerability, { where: { id: dto.vulnerabilityId } });
+    let vuln = await this.entityManager.findOne(Vulnerability, {
+      where: { id: dto.vulnerabilityId },
+    });
     if (!vuln) {
-        vuln = this.entityManager.create(Vulnerability, { 
-            id: dto.vulnerabilityId, 
-            severity: 'Unknown', // Default
-            description: 'Manually created via VEX Manager',
-            affectedPackages: []
-        });
-        await this.entityManager.save(vuln);
+      vuln = this.entityManager.create(Vulnerability, {
+        id: dto.vulnerabilityId,
+        severity: 'Unknown',
+        description: 'Manually created via VEX Manager',
+        affectedPackages: [],
+      });
+      await this.entityManager.save(vuln);
     }
 
-    // 3. Create VEX Statement
     const statement = this.vexRepository.create({
-        product: product,
-        vulnerability: vuln,
-        status: dto.status,
-        justification: dto.justification,
-        componentPurl: `pkg:generic/${dto.productName}@1.0.0` // Placeholder
+      product: product,
+      vulnerability: vuln,
+      status: dto.status,
+      justification: dto.justification,
+      componentPurl: `pkg:generic/${dto.productName}@1.0.0`,
     });
 
     return this.vexRepository.save(statement);
   }
 
   async correlate(sbom: Sbom) {
-    // 1. Get components
-    const components = sbom.components || [];
+    const components = sbom.content?.components || [];
     if (components.length === 0) return;
 
-    // 2. Enrich with OSV Data (Batch)
-    // This returns a map of purl -> Vulnerability[]
     const vulnerabilitiesMap = await this.vulnService.enrichWithOsv(components);
-    
-    // 3. Create VEX Statements
+
     for (const comp of components) {
-        if (!comp.purl) continue;
-        const vulns = vulnerabilitiesMap[comp.purl];
-        if (!vulns || vulns.length === 0) continue;
+      if (!comp.purl) continue;
+      const vulns = vulnerabilitiesMap[comp.purl];
+      if (!vulns || vulns.length === 0) continue;
 
-        for (const vuln of vulns) {
-            const product = sbom.release.product;
+      for (const vuln of vulns) {
+        const product = sbom.release.product;
 
-            // Check if VEX statement exists for this Product + Vuln + Component
-            let statement = await this.vexRepository.findOne({
-                where: {
-                    product: { id: product.id },
-                    vulnerability: { id: vuln.id },
-                    componentPurl: comp.purl
-                }
-            });
+        let statement = await this.vexRepository.findOne({
+          where: {
+            product: { id: product.id },
+            vulnerability: { id: vuln.id },
+            componentPurl: comp.purl,
+          },
+        });
 
-            if (!statement) {
-                statement = this.vexRepository.create({
-                    product: product,
-                    vulnerability: vuln,
-                    componentPurl: comp.purl,
-                    status: VexStatus.UNDER_INVESTIGATION,
-                    justification: 'Automatically correlated via OSV'
-                });
-                await this.vexRepository.save(statement);
-            }
+        if (!statement) {
+          statement = this.vexRepository.create({
+            product: product,
+            vulnerability: vuln,
+            componentPurl: comp.purl,
+            status: VexStatus.UNDER_INVESTIGATION,
+            justification: 'Automatically correlated via OSV',
+          });
+          await this.vexRepository.save(statement);
         }
+      }
     }
   }
 
   async findAllByProduct(productId: string, userId: string, query?: any) {
-      const page = query?.page || 1;
-      const limit = query?.limit || 10;
-      const skip = (page - 1) * limit;
+    const page = query?.page || 1;
+    const limit = query?.limit || 10;
+    const skip = (page - 1) * limit;
 
-      const whereClause: any = { 
-          product: { 
-              id: productId,
-              owner: { id: userId }
-          } 
-      };
-      if (query?.status) {
-          whereClause.status = query.status;
-      }
+    const whereClause: any = {
+      product: {
+        id: productId,
+        owner: { id: userId },
+      },
+    };
+    if (query?.status) {
+      whereClause.status = query.status;
+    }
 
-      const [data, total] = await this.vexRepository.findAndCount({
-          where: whereClause,
-          relations: ['vulnerability', 'product'],
-          skip,
-          take: limit,
-          order: { id: 'DESC' }
-      });
+    const [data, total] = await this.vexRepository.findAndCount({
+      where: whereClause,
+      relations: ['vulnerability', 'product'],
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
+    });
 
-      return {
-          data,
-          meta: {
-              total,
-              page,
-              limit,
-              totalPages: Math.ceil(total / limit),
-          }
-      };
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async updateStatus(id: string, userId: string, dto: UpdateVexStatusDto) {
-      const statement = await this.vexRepository.findOne({ 
-          where: { id },
-          relations: ['product', 'product.organization', 'product.organization.users']
-      });
-      
-      if (!statement) throw new Error('VEX Statement not found');
+    const statement = await this.vexRepository.findOne({
+      where: { id },
+      relations: [
+        'product',
+        'product.organization',
+        'product.organization.users',
+      ],
+    });
 
-      const isMember = statement.product.organization.users.some(u => u.id === userId);
-      if (!isMember) {
-          throw new Error('Unauthorized access to VEX statement');
-      }
-      
-      if (dto.status === VexStatus.NOT_AFFECTED && !dto.justification && !statement.justification) {
-          throw new Error('Justification is required when setting status to NOT_AFFECTED');
-      }
+    if (!statement) throw new Error('VEX Statement not found');
 
-      statement.status = dto.status;
-      if (dto.justification) statement.justification = dto.justification;
-      
-      return this.vexRepository.save(statement);
+    const isMember = statement.product.organization.users.some(
+      (u) => u.id === userId,
+    );
+    if (!isMember) {
+      throw new Error('Unauthorized access to VEX statement');
+    }
+
+    if (
+      dto.status === VexStatus.NOT_AFFECTED &&
+      !dto.justification &&
+      !statement.justification
+    ) {
+      throw new Error(
+        'Justification is required when setting status to NOT_AFFECTED',
+      );
+    }
+
+    statement.status = dto.status;
+    if (dto.justification) statement.justification = dto.justification;
+
+    return this.vexRepository.save(statement);
+  }
+
+  async bulkUpdate(userId: string, dto: BulkUpdateVexDto) {
+    const statements = await this.vexRepository.find({
+      where: { id: In(dto.ids) },
+      relations: [
+        'product',
+        'product.organization',
+        'product.organization.users',
+      ],
+    });
+
+    if (statements.length === 0) return [];
+
+    const authorizedStatements = statements.filter((stmt) => {
+      return stmt.product.organization.users.some((u) => u.id === userId);
+    });
+
+    if (authorizedStatements.length === 0) {
+      throw new Error('No authorized VEX statements found to update');
+    }
+
+    for (const stmt of authorizedStatements) {
+      stmt.status = dto.status;
+      if (dto.justification) stmt.justification = dto.justification;
+    }
+
+    return this.vexRepository.save(authorizedStatements);
   }
 
   async count(organizationId: string): Promise<number> {
     return this.vexRepository.count({
-        where: {
-            product: { organization: { id: organizationId } }
-        }
+      where: {
+        product: { organization: { id: organizationId } },
+      },
     });
   }
 
   async countResolved(organizationId: string): Promise<number> {
-    return this.vexRepository.count({ 
-        where: [
-            { status: VexStatus.FIXED, product: { organization: { id: organizationId } } },
-            { status: VexStatus.NOT_AFFECTED, product: { organization: { id: organizationId } } }
-        ]
+    return this.vexRepository.count({
+      where: [
+        {
+          status: VexStatus.FIXED,
+          product: { organization: { id: organizationId } },
+        },
+        {
+          status: VexStatus.NOT_AFFECTED,
+          product: { organization: { id: organizationId } },
+        },
+      ],
     });
   }
 
   async countCritical(organizationId: string): Promise<number> {
-      return this.vexRepository.count({
-          where: [
-            { 
-              vulnerability: { severity: 'CRITICAL' }, 
-              status: VexStatus.AFFECTED,
-              product: { organization: { id: organizationId } } 
-            },
-            {
-              vulnerability: { severity: 'CRITICAL' }, 
-              status: VexStatus.UNDER_INVESTIGATION,
-              product: { organization: { id: organizationId } } 
-            }
-          ],
-          relations: ['vulnerability', 'product']
-      });
+    return this.vexRepository.count({
+      where: [
+        {
+          vulnerability: { severity: 'CRITICAL' },
+          status: VexStatus.AFFECTED,
+          product: { organization: { id: organizationId } },
+        },
+        {
+          vulnerability: { severity: 'CRITICAL' },
+          status: VexStatus.UNDER_INVESTIGATION,
+          product: { organization: { id: organizationId } },
+        },
+      ],
+      relations: ['vulnerability', 'product'],
+    });
   }
 
   async findRecent(organizationId: string): Promise<VexStatement[]> {
@@ -205,39 +248,60 @@ export class VexService {
       take: 5,
       relations: ['vulnerability', 'product', 'product.organization'],
       where: {
-          product: { organization: { id: organizationId } }
-      }
+        product: { organization: { id: organizationId } },
+      },
     });
   }
 
   async findAll(organizationId: string, query?: any) {
-      const page = query?.page || 1;
-      const limit = query?.limit || 10;
-      const skip = (page - 1) * limit;
+    const page = query?.page || 1;
+    const limit = query?.limit || 10;
+    const skip = (page - 1) * limit;
 
-      const whereClause: any = {
-          product: { organization: { id: organizationId } }
-      };
-      if (query?.status && query.status !== 'all') {
-          whereClause.status = query.status;
-      }
+    const whereClause: any = {
+      product: { organization: { id: organizationId } },
+    };
+    if (query?.status && query.status !== 'all') {
+      whereClause.status = query.status;
+    }
 
-      const [data, total] = await this.vexRepository.findAndCount({
-          where: whereClause,
-          relations: ['vulnerability', 'product'],
-          skip,
-          take: limit,
-          order: { id: 'DESC' }
-      });
+    const [data, total] = await this.vexRepository.findAndCount({
+      where: whereClause,
+      relations: ['vulnerability', 'product'],
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
+    });
 
-      return {
-          data,
-          meta: {
-              total,
-              page,
-              limit,
-              totalPages: Math.ceil(total / limit),
-          }
-      };
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findByProductVuln(productId: string, vulnId: string, purl: string) {
+    return this.vexRepository.findOne({
+      where: {
+        product: { id: productId },
+        vulnerability: { id: vulnId },
+        componentPurl: purl,
+      },
+    });
+  }
+
+  async createAuto(data: {
+    product: Product;
+    vulnerability: Vulnerability;
+    componentPurl: string;
+    status: VexStatus;
+    justification: string;
+  }) {
+    const statement = this.vexRepository.create(data);
+    return this.vexRepository.save(statement);
   }
 }

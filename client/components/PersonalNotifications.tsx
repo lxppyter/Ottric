@@ -4,8 +4,7 @@ import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { toast } from 'sonner';
+import api from '@/lib/axios';
 
 export function PersonalNotifications() {
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -14,11 +13,7 @@ export function PersonalNotifications() {
 
     const fetchNotifications = async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            const res = await axios.get('http://localhost:3000/users/notifications', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/users/notifications');
             setNotifications(res.data);
             setHasUnread(res.data.some((n: any) => !n.isRead));
         } catch (e) {
@@ -34,10 +29,7 @@ export function PersonalNotifications() {
 
     const markAsRead = async (id: string) => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.post(`http://localhost:3000/users/notifications/${id}/read`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post(`/users/notifications/${id}/read`);
             // Update local state
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
             setHasUnread(notifications.some(n => !n.isRead && n.id !== id));
