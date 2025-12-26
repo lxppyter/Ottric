@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
@@ -11,6 +12,10 @@ async function bootstrap() {
   // Security Headers
   app.use(helmet());
   app.use(cookieParser());
+
+  // Body Parsing Limits (Enterprise Scale)
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // Input Validation
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));

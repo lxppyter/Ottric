@@ -7,7 +7,6 @@ import { User, UserRole } from './entities/user.entity';
 import { Organization } from './entities/organization.entity';
 import { Invitation, InvitationStatus } from './entities/invitation.entity';
 import { ApiKey } from './entities/api-key.entity';
-import { PersonalNotification } from './entities/personal-notification.entity';
 import { Waitlist } from './entities/waitlist.entity';
 
 @Injectable()
@@ -21,8 +20,6 @@ export class UsersService {
     private invitationRepository: Repository<Invitation>,
     @InjectRepository(ApiKey)
     private apiKeyRepository: Repository<ApiKey>,
-    @InjectRepository(PersonalNotification)
-    private personalNotificationRepository: Repository<PersonalNotification>,
     @InjectRepository(Waitlist)
     private waitlistRepository: Repository<Waitlist>,
   ) {
@@ -36,38 +33,7 @@ export class UsersService {
     });
   }
 
-  // Personal Notifications
-  async createPersonalNotification(
-    userId: string,
-    title: string,
-    message: string,
-    type: string = 'INFO',
-  ) {
-    const user = await this.usersRepository.findOneBy({ id: userId });
-    if (!user) return;
 
-    const notif = this.personalNotificationRepository.create({
-      user,
-      title,
-      message,
-      type: type as any,
-    });
-    return this.personalNotificationRepository.save(notif);
-  }
-
-  async getPersonalNotifications(userId: string) {
-    return this.personalNotificationRepository.find({
-      where: { user: { id: userId } },
-      order: { createdAt: 'DESC' },
-      take: 20,
-    });
-  }
-
-  async markNotificationRead(notifId: string) {
-    return this.personalNotificationRepository.update(notifId, {
-      isRead: true,
-    });
-  }
 
   async create(
     email: string,
@@ -298,20 +264,22 @@ export class UsersService {
     member.organization = null;
     // Reset role to default or keep? If they have no org, role is ambiguous.
     // Let's reset to MEMBER default, but effective permissions are null without org.
+    // Reset role to default or keep? If they have no org, role is ambiguous.
+    // Let's reset to MEMBER default, but effective permissions are null without org.
     member.role = UserRole.MEMBER;
-
-    await this.createPersonalNotification(
-      member.id,
-      'Security Alert: Organization Removal',
-      `You have been removed from the organization ${admin.organization?.name} by an Administrator. If you believe this is an error, please contact support.`,
-      'SYSTEM_ALERT',
-    );
 
     return this.usersRepository.save(member);
   }
 
   async updateUser(user: User) {
     return this.usersRepository.save(user);
+  }
+
+  async updateProfile(userId: string, data: Partial<User>) {
+      // Security: Whitelist allowed fields if needed, or rely on DTO in Controller.
+      // For now, straight update.
+      await this.usersRepository.update(userId, data);
+      return this.usersRepository.findOneBy({ id: userId });
   }
 
   async updateOrganizationName(orgId: string, name: string) {
@@ -331,5 +299,10 @@ export class UsersService {
       }
       const entry = this.waitlistRepository.create({ email });
       return this.waitlistRepository.save(entry);
+  }
+  async getUsersByOrg(orgId: string) {
+    return this.usersRepository.find({
+      where: { organization: { id: orgId } }
+    });
   }
 }

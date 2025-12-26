@@ -30,6 +30,9 @@ export class IngestionService {
     );
     const sbom = await this.sbomService.ingestSbom(release, dto.sbom);
     await this.vexService.correlate(sbom);
+    
+    // Update Score
+    await this.vexService.updateProductCompliance(product.id);
 
     // Trigger Notifications
     this.notificationsService.dispatch(userId, 'sbom.ingested', {

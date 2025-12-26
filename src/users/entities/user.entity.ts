@@ -7,7 +7,6 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Organization } from './organization.entity';
-import { PersonalNotification } from './personal-notification.entity';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -42,6 +41,11 @@ export class User {
   })
   role: UserRole;
 
-  @OneToMany(() => PersonalNotification, (notification) => notification.user)
-  notifications: PersonalNotification[];
+  @Column('jsonb', { default: { email: true, criticalVuln: true, ingestion: true } })
+  notificationPreferences: {
+      email: boolean;
+      criticalVuln: boolean;
+      ingestion: boolean;
+  };
+
 }

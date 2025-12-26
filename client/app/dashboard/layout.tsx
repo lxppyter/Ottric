@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, FileText, Settings, LogOut, ShieldCheck, Upload, Building2, Archive, Bell, CreditCard, Loader2 } from 'lucide-react';
+import { LayoutDashboard, FileText, Settings, LogOut, ShieldCheck, Upload, Building2, Archive, Bell, CreditCard, Loader2, Blocks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { PersonalNotifications } from '@/components/PersonalNotifications';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -44,16 +43,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { icon: Upload, label: 'Ingestion', href: '/dashboard/ingest' },
     { icon: Building2, label: 'Organization', href: '/dashboard/organization' },
     { icon: CreditCard, label: 'Billing', href: '/dashboard/settings/billing' },
+    { icon: Blocks, label: 'Integrations', href: '/dashboard/integrations' },
     { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
   ];
 
   return (
-    <div className="flex h-screen bg-background font-sans overflow-hidden relative">
+    <div className="flex min-h-screen bg-background font-sans relative">
       {/* Subtle Background Noise/Grid */}
-      <div className="absolute inset-0 bg-cyberpunk-grid opacity-[0.01] pointer-events-none" />
+      <div className="absolute inset-0 bg-cyberpunk-grid opacity-[0.01] pointer-events-none fixed" />
       
       {/* Sidebar */}
-      <aside className="w-64 bg-secondary/5 border-r border-white/5 hidden md:flex flex-col relative z-10 backdrop-blur-xl">
+      <aside className="w-64 bg-secondary/5 border-r border-white/5 hidden md:flex flex-col relative z-10 backdrop-blur-xl sticky top-0 h-screen">
         <div className="h-20 flex items-center px-6 border-b border-white/5">
              <div className="p-2 bg-primary/10 rounded-lg mr-3">
                 <ShieldCheck className="w-5 h-5 text-primary" />
@@ -87,8 +87,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8 relative z-10">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-1 p-8 relative z-10">
+        <div className="w-full">
             {children}
         </div>
       </main>

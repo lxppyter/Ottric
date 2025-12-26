@@ -82,4 +82,36 @@ export class VexController {
       throw new BadRequestException(error.message);
     }
   }
+
+  @Get(':id/history')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+      summary: 'Get VEX History',
+      description: 'Get audit trail for a VEX statement'
+  })
+  async getHistory(@Param('id') id: string) {
+      return this.vexService.getHistory(id);
+  }
+  @Get('export/:productId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Export VEX',
+    description: 'Export VEX in CycloneDX format',
+  })
+  async export(@Param('productId') productId: string) {
+    return this.vexService.export(productId);
+  }
+  @Get('product/:productId/activity')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Get Project Activity',
+    description: 'Get audit logs for all VEX statements in a project',
+  })
+  async getActivity(
+    @Param('productId') productId: string,
+    @Query('limit') limit = 50,
+    @Query('offset') offset = 0,
+  ) {
+    return this.vexService.getProjectActivity(productId, Number(limit), Number(offset));
+  }
 }

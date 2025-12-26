@@ -7,7 +7,6 @@ import { User } from './entities/user.entity';
 import { Organization } from './entities/organization.entity';
 import { Invitation } from './entities/invitation.entity';
 import { ApiKey } from './entities/api-key.entity';
-import { PersonalNotification } from './entities/personal-notification.entity';
 import { Waitlist } from './entities/waitlist.entity';
 import { JwtModule } from '@nestjs/jwt';
 
@@ -18,7 +17,6 @@ import { JwtModule } from '@nestjs/jwt';
       Organization,
       Invitation,
       ApiKey,
-      PersonalNotification,
       Waitlist,
     ]),
     JwtModule.register({

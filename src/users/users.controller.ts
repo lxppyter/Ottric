@@ -34,44 +34,27 @@ export class UsersController {
     return user;
   }
 
-  @Get('notifications')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Get Notifications',
-    description: 'Get personal notifications.',
-  })
-  async getNotifications(@Request() req) {
-    return this.usersService.getPersonalNotifications(req.user.id);
-  }
 
-  @Post('notifications/:id/read')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'Mark Notification Read',
-    description: 'Mark a notification as read.',
-  })
-  async markRead(@Request() req, @Param('id') id: string) {
-    return this.usersService.markNotificationRead(id);
-  }
 
   @Patch('profile')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Update Profile',
-    description: 'Update current user profile',
+    description: 'Update current user profile (preferences, etc.)',
   })
   async updateProfile(@Request() req, @Body() body: any) {
-    // In a real app we would use DTO
-    // For MVP just allow updating "name" or similar if we added it.
-    // Current User entity only has username, password.
-    // I'll assume we might want to update password, or add "name" later.
-    // For now, let's just return the user to confirm it works, or maybe
-    // accept a "fullName" or "email" if we had those fields.
+    // Whitelist allowed fields for update
+    const updateData: any = {};
+    if (body.notificationPreferences) {
+        updateData.notificationPreferences = body.notificationPreferences;
+    }
+    // Add other fields here as needed (e.g. name, avatar)
 
-    // Let's verify we can find the user.
-    const user = await this.usersService.findOne(req.user.email);
-    // Mock update
-    return { ...user, ...body, message: 'Profile updated (simulation)' };
+    if (Object.keys(updateData).length > 0) {
+        return this.usersService.updateProfile(req.user.id, updateData);
+    }
+    
+    return this.usersService.findOne(req.user.email);
   }
 
   @Post('waitlist')

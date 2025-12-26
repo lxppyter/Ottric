@@ -6,11 +6,13 @@ import { User } from '../users/entities/user.entity';
 import { ProductsService } from './products.service';
 
 import { BillingModule } from '../billing/billing.module';
+import { SecurityModule } from '../common/security/security.module';
+import { PolicyModule } from '../policies/policy.module';
 
 import { ProductsController } from './products.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product, Release, User]), BillingModule],
+  imports: [TypeOrmModule.forFeature([Product, Release, User]), BillingModule, SecurityModule, PolicyModule],
   controllers: [ProductsController],
   providers: [ProductsService],
   exports: [TypeOrmModule, ProductsService],

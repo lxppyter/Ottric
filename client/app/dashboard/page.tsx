@@ -97,8 +97,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8">
-        <div className="flex justify-between items-end">
+    <div className="flex flex-col h-[calc(100vh-4rem)] gap-6 overflow-hidden">
+        <div className="flex justify-between items-end shrink-0">
             <div>
                 <h1 className="text-3xl font-black tracking-tighter text-white mb-2">Command Center</h1>
                 <p className="text-muted-foreground text-sm font-mono uppercase tracking-wide">System Overview & Security Posture</p>
@@ -110,7 +110,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 shrink-0">
             <StatsCard 
                 title="Active Releases" 
                 value={stats.activeReleases.toString()} 
@@ -128,17 +128,17 @@ export default function Dashboard() {
         </div>
         
         {/* Main Content Grid */}
-        <div className="grid gap-6 md:grid-cols-7">
+        <div className="grid gap-6 md:grid-cols-7 flex-1 min-h-0">
             
             {/* Recent Activity / Vulnerabilties */}
-            <Card className="col-span-1 md:col-span-4 bg-secondary/5 border-white/5 text-white shadow-none h-full">
-                <CardHeader className="border-b border-white/5 pb-4">
+            <Card className="col-span-1 md:col-span-4 bg-secondary/5 border-white/5 text-white shadow-none h-full flex flex-col">
+                <CardHeader className="border-b border-white/5 pb-4 shrink-0">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-sm font-mono font-bold uppercase tracking-widest text-muted-foreground">Recent Signals</CardTitle>
                         <Clock className="w-4 h-4 text-muted-foreground" />
                     </div>
                 </CardHeader>
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 flex-1 overflow-auto custom-scrollbar">
                     <div className="space-y-4">
                          {stats.recentVex.length === 0 ? (
                             <div className="text-center text-muted-foreground py-8 text-sm font-mono">No recent signals detected.</div>
@@ -165,14 +165,14 @@ export default function Dashboard() {
             </Card>
 
             {/* System Health / Ingestion */}
-            <Card className="col-span-1 md:col-span-3 bg-secondary/5 border-white/5 text-white shadow-none h-full">
-                <CardHeader className="border-b border-white/5 pb-4">
+            <Card className="col-span-1 md:col-span-3 bg-secondary/5 border-white/5 text-white shadow-none h-full flex flex-col">
+                <CardHeader className="border-b border-white/5 pb-4 shrink-0">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-sm font-mono font-bold uppercase tracking-widest text-muted-foreground">Ingestion Pipeline</CardTitle>
                         <Server className="w-4 h-4 text-muted-foreground" />
                     </div>
                 </CardHeader>
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 flex-1 overflow-auto custom-scrollbar">
                    <div className="space-y-6">
                         {/* Visual Candy Users Like */}
                         <div className="relative">

@@ -8,4 +8,7 @@ export class UpdateVexStatusDto {
   @IsString()
   @IsOptional()
   justification?: string;
+
+  @IsOptional()
+  expiresAt?: Date;
 }

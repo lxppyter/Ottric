@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { Sbom } from '../sbom/entities/sbom.entity';
 import { VexStatement, VexStatus } from '../vex/entities/vex-statement.entity';
 import { Product } from '../products/entities/product.entity';
+import { RiskService } from '../vuln/risk.service';
+import * as semver from 'semver';
+import { PackageURL } from 'packageurl-js';
 
 @Injectable()
 export class PortalService {
@@ -14,7 +17,32 @@ export class PortalService {
     private vexRepository: Repository<VexStatement>,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
+    private riskService: RiskService,
   ) {}
+
+  private calculateUpgradeRisk(currentVersion: string, fixedVersion: string): 'LOW' | 'MEDIUM' | 'HIGH' | 'UNKNOWN' {
+    if (!currentVersion || !fixedVersion) return 'UNKNOWN';
+
+    try {
+        // Handle "1.2.3, 1.3.0" case -> pick first
+        const target = fixedVersion.split(',')[0].trim();
+        
+        const current = semver.coerce(currentVersion);
+        const fixed = semver.coerce(target);
+
+        if (!current || !fixed) return 'UNKNOWN';
+
+        const diff = semver.diff(current, fixed);
+        
+        if (diff === 'major' || diff === 'premajor') return 'HIGH';
+        if (diff === 'minor' || diff === 'preminor') return 'MEDIUM';
+        if (diff === 'patch' || diff === 'prepatch' || diff === 'prerelease') return 'LOW';
+        
+        return 'UNKNOWN';
+    } catch (e) {
+        return 'UNKNOWN';
+    }
+  }
 
   async getSbom(productName: string, version: string) {
     const sbom = await this.sbomRepository.findOne({
@@ -30,17 +58,9 @@ export class PortalService {
     if (!sbom)
       throw new NotFoundException('SBOM not found for this product version');
     return sbom.content; // Return the raw JSON content
-    // OR create a download stream if content is large.
   }
 
   async getVex(productName: string, version: string) {
-    // Find release first to verify existence?
-    // VEX is tied to Product/Release context.
-    // Assuming we want VEX statements for this specific release (which might just reflect Product-wide statements).
-    // Our VexStatement has `product` relation.
-    // And `componentPurl` matches components in this release.
-
-    // 1. Get SBOM to know components
     const sbom = await this.sbomRepository.findOne({
       where: {
         release: {
@@ -53,30 +73,47 @@ export class PortalService {
 
     if (!sbom) throw new NotFoundException('Release not found');
 
-    // 2. Find VEX statements for this product
     const statements = await this.vexRepository.find({
       where: { product: { id: sbom.release.product.id } },
       relations: ['vulnerability'],
     });
 
-    // 3. Filter/Map or just return all statements for the product
-    // Usually VEX is a document. We should generate a CycloneDX VEX or CSAF.
-    // For MVP, just return JSON list of statements.
     return {
       product: productName,
       version: version,
       statements: statements.map((s) => ({
         id: s.id,
-        vulnerability: s.vulnerability.id,
+        vulnerability: {
+            id: s.vulnerability.id,
+            severity: (() => {
+                const rawSev = s.vulnerability.severity ? String(s.vulnerability.severity).toUpperCase() : '';
+                if (rawSev.startsWith('CVSS:')) {
+                    let impactCount = 0;
+                    if (rawSev.includes('C:H') || rawSev.includes('VC:H')) impactCount++;
+                    if (rawSev.includes('I:H') || rawSev.includes('VI:H')) impactCount++;
+                    if (rawSev.includes('A:H') || rawSev.includes('VA:H')) impactCount++;
+                    
+                    if (impactCount === 3) return 'CRITICAL';
+                    if (impactCount === 2) return 'HIGH';
+                    if (impactCount === 1) return 'HIGH';
+                    return 'MEDIUM';
+                }
+                if (rawSev === 'MODERATE') return 'MEDIUM';
+                return rawSev || 'UNKNOWN';
+            })(),
+            hasFix: s.vulnerability.hasFix,
+            fixedIn: s.vulnerability.fixedIn,
+            isExploitable: s.vulnerability.isExploitable
+        },
         status: s.status,
         purl: s.componentPurl,
         justification: s.justification,
+        reachability: s.reachability,
       })),
     };
   }
 
   async getAuditPack(productName: string, version: string) {
-    // 1. Get SBOM and Release Metadata
     const sbom = await this.sbomRepository.findOne({
       where: {
         release: {
@@ -89,16 +126,23 @@ export class PortalService {
 
     if (!sbom) throw new NotFoundException('SBOM not found');
 
-    // 2. Get VEX Statements with Vulnerability Details
     const statements = await this.vexRepository.find({
       where: { product: { id: sbom.release.product.id } },
       relations: ['vulnerability'],
     });
 
-    // 3. Construct Bundle
+    const affectedStatements = statements.filter(
+      (s) => s.status === VexStatus.AFFECTED,
+    );
+    const riskScore = this.riskService.calculateProjectRiskScore(
+      sbom.release.product,
+      affectedStatements.map((s) => s.vulnerability),
+    );
+
     return {
       schema: 'ottric-audit-pack-v1',
       generatedAt: new Date(),
+      riskScore, // Added field
       product: {
         name: sbom.release.product.name,
         version: sbom.release.version,
@@ -113,14 +157,47 @@ export class PortalService {
         status: s.status,
         justification: s.justification,
         componentPurl: s.componentPurl,
+        expiresAt: s.expiresAt, // Added
+        reachability: s.reachability, // Added
         vulnerability: {
           id: s.vulnerability.id,
-          severity: s.vulnerability.severity,
+          summary: s.vulnerability.summary,
+          details: s.vulnerability.details,
+            severity: (() => {
+                const rawSev = s.vulnerability.severity ? String(s.vulnerability.severity).toUpperCase() : '';
+                if (rawSev.startsWith('CVSS:')) {
+                    let impactCount = 0;
+                    if (rawSev.includes('C:H') || rawSev.includes('VC:H')) impactCount++;
+                    if (rawSev.includes('I:H') || rawSev.includes('VI:H')) impactCount++;
+                    if (rawSev.includes('A:H') || rawSev.includes('VA:H')) impactCount++;
+                    
+                    if (impactCount === 3) return 'CRITICAL';
+                    if (impactCount === 2) return 'HIGH';
+                    if (impactCount === 1) return 'HIGH';
+                    return 'MEDIUM';
+                }
+                if (rawSev === 'MODERATE') return 'MEDIUM';
+                return rawSev || 'UNKNOWN';
+            })(),
           aliases: s.vulnerability.aliases,
           references: s.vulnerability.references,
+          epssScore: s.vulnerability.epssScore, // Added
+          epssPercentile: s.vulnerability.epssPercentile, // Added
+          isKev: s.vulnerability.isKev, // Added
+          hasFix: s.vulnerability.hasFix,
+          fixedIn: s.vulnerability.fixedIn,
+          upgradeRisk: (() => {
+              if (!s.vulnerability.fixedIn || !s.componentPurl) return 'UNKNOWN';
+              try {
+                  const purl = PackageURL.fromString(s.componentPurl);
+                  if (!purl.version) return 'UNKNOWN';
+                  return this.calculateUpgradeRisk(purl.version, s.vulnerability.fixedIn);
+              } catch (e) {
+                  return 'UNKNOWN';
+              }
+          })(),
         },
       })),
-      // summary statistics
       summary: {
         totalComponents: sbom.content?.components?.length || 0,
         totalVulnerabilities: statements.length,
@@ -144,29 +221,30 @@ export class PortalService {
       order: { createdAt: 'DESC' },
     });
 
-    // Enrich with stats
-    // This is N+1 query problem potential, but fine for MVP
     const enriched = await Promise.all(
       products.map(async (p) => {
-        // Get latest release
         const releases = p.releases.sort(
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
         const latest = releases[0];
 
-        // Count Open Critical/High VEX
-        const vexCount = await this.vexRepository.count({
+        const affectedStatements = await this.vexRepository.find({
           where: {
             product: { id: p.id },
             status: VexStatus.AFFECTED,
-            // vulnerability: { severity: 'CRITICAL' } // Can't filter relation deep in count easily without query builder
           },
-          // relations: ['vulnerability']
+          relations: ['vulnerability'],
         });
 
-        // To get severity breakdown properly we'd need a builder or find()
-        // Let's just return total "affected" count for now as "Risk Score" proxy
+        console.log(`Debug Risk for ${p.name}: Found ${affectedStatements.length} affected vulns.`);
+
+        const vulnerabilities = affectedStatements.map((s) => s.vulnerability);
+        const riskScore = this.riskService.calculateProjectRiskScore(
+          p,
+          vulnerabilities,
+        );
+        console.log(`Debug Risk for ${p.name}: Calculated Score ${riskScore}`);
 
         return {
           id: p.id,
@@ -174,7 +252,12 @@ export class PortalService {
           description: p.description,
           latestVersion: latest?.version || 'N/A',
           lastUpdated: latest?.updatedAt || latest?.createdAt || p.createdAt,
-          riskCount: vexCount,
+          riskScore: riskScore,
+          riskCount: affectedStatements.length,
+          criticality: p.criticality,
+          environment: p.environment,
+          complianceScore: p.complianceScore,
+          complianceGrade: p.complianceGrade,
         };
       }),
     );

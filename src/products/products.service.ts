@@ -1,10 +1,12 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { SecurityService } from '../common/security/security.service';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { Release } from './entities/release.entity';
 import { User } from '../users/entities/user.entity';
 import { BillingService } from '../billing/billing.service';
+import { PolicyService } from '../policies/policy.service';
 
 @Injectable()
 export class ProductsService {
@@ -16,6 +18,8 @@ export class ProductsService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private billingService: BillingService,
+    private securityService: SecurityService,
+    private policyService: PolicyService,
   ) {}
 
   async ensureProduct(name: string, userId: string): Promise<Product> {
@@ -137,5 +141,57 @@ export class ProductsService {
 
     product.name = newName;
     return this.productsRepository.save(product);
+  }
+
+  async updateProductContext(
+    productId: string,
+    orgId: string,
+    data: {
+      criticality?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+      environment?: 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION';
+      isInternetFacing?: boolean;
+    },
+  ) {
+    const product = await this.productsRepository.findOne({
+      where: { id: productId },
+      relations: ['organization'],
+    });
+    if (!product) throw new Error('Product not found');
+    if (product.organization.id !== orgId)
+      throw new ForbiddenException('Unauthorized');
+
+    if (data.criticality) product.criticality = data.criticality;
+    if (data.environment) product.environment = data.environment;
+    if (data.isInternetFacing !== undefined)
+      product.isInternetFacing = data.isInternetFacing;
+
+    return this.productsRepository.save(product);
+  }
+
+  async updateIntegrationSettings(
+    id: string, 
+    organizationId: string, 
+    settings: { repositoryUrl?: string; manifestFilePath?: string; githubToken?: string }
+  ) {
+    const product = await this.productsRepository.findOne({ where: { id, organization: { id: organizationId } } });
+    if (!product) throw new NotFoundException('Product not found');
+
+    if (settings.repositoryUrl !== undefined) product.repositoryUrl = settings.repositoryUrl;
+    if (settings.manifestFilePath !== undefined) product.manifestFilePath = settings.manifestFilePath;
+    
+    if (settings.githubToken) {
+        const { content, iv } = this.securityService.encrypt(settings.githubToken);
+        product.githubToken = content;
+        product.githubTokenIv = iv;
+    }
+
+    return this.productsRepository.save(product);
+  }
+
+  async setComplianceScore(productId: string, score: number, grade: string) {
+    return this.productsRepository.update(productId, {
+        complianceScore: score,
+        complianceGrade: grade,
+    });
   }
 }

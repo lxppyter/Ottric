@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
@@ -16,8 +16,17 @@ import { GithubModule } from './github/github.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MonitorModule } from './monitor/monitor.module';
-
+import { AnalysisModule } from './analysis/analysis.module';
 import { BillingModule } from './billing/billing.module';
+import { AuditModule } from './audit/audit.module';
+import { IntegrationModule } from './integration/integration.module';
+import { AutomationModule } from './automation/automation.module';
+import { PolicyModule } from './policies/policy.module';
+
+import { IntegrationsController } from './integrations/integrations.controller';
+import { GithubService } from './integrations/github/github.service';
+import { SecurityModule } from './common/security/security.module';
+import { Product } from './products/entities/product.entity';
 
 @Module({
   imports: [
@@ -31,16 +40,21 @@ import { BillingModule } from './billing/billing.module';
         limit: 100,
       },
     ]),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || '123456',
-      database: process.env.DB_NAME || 'ottric',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // Use only for development!
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST') || 'localhost',
+        port: parseInt(configService.get<string>('DB_PORT') || '5432', 10),
+        username: configService.get<string>('DB_USER') || 'postgres',
+        password: configService.get<string>('DB_PASSWORD') || '123456',
+        database: configService.get<string>('DB_NAME') || 'ottric',
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true, // Use only for development!
+      }),
+      inject: [ConfigService],
     }),
+    TypeOrmModule.forFeature([Product]), 
     ProductsModule,
     SbomModule,
     VulnModule,
@@ -52,11 +66,19 @@ import { BillingModule } from './billing/billing.module';
     AuthModule,
     UsersModule,
     MonitorModule,
+    AnalysisModule,
     BillingModule,
+    AuditModule,
+    IntegrationModule,
+    AutomationModule,
+    PolicyModule,
+    SecurityModule, // Imported here
   ],
-  controllers: [AppController],
+  controllers: [AppController, IntegrationsController],
   providers: [
     AppService,
+    GithubService,
+    // SecurityService removed (provided by SecurityModule)
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

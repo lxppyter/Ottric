@@ -45,6 +45,11 @@ export class ReportService {
         .fillColor('orange')
         .text(`Under Investigation: ${summary.underInvestigation}`);
       doc.fillColor('blue').text(`Clean/Not Affected: ${summary.notAffected}`);
+      
+      doc.moveDown();
+      doc.fillColor('black').font('Helvetica-Oblique').fontSize(10)
+         .text('Note: Report includes Risk Intelligence data (EPSS, KEV, Reachability) where available.');
+      doc.font('Helvetica');
 
       doc.moveDown(2);
 
@@ -56,21 +61,34 @@ export class ReportService {
       doc.moveDown();
 
       const criticals = auditPack.vex
-        .filter((v: any) => v.vulnerability.severity === 'CRITICAL')
-        .slice(0, 10);
+        .filter((v: any) => v.vulnerability.severity === 'CRITICAL' || v.vulnerability.severity === 'HIGH')
+        .sort((a, b) => (b.vulnerability.epssScore || 0) - (a.vulnerability.epssScore || 0))
+        .slice(0, 15);
 
       if (criticals.length === 0) {
-        doc.fontSize(12).text('No critical vulnerabilities found.');
+        doc.fontSize(12).text('No critical/high vulnerabilities found.');
       } else {
         criticals.forEach((v: any) => {
           doc
             .fontSize(12)
             .font('Helvetica-Bold')
-            .text(`${v.vulnerability.id} (${v.status})`);
-          doc
-            .fontSize(10)
-            .font('Helvetica')
-            .text(`Component: ${v.componentPurl}`);
+            .fillColor(v.vulnerability.severity === 'CRITICAL' ? 'red' : 'orange')
+            .text(`[${v.vulnerability.severity}] ${v.vulnerability.id} (${v.status})`);
+          
+          doc.fillColor('black').font('Helvetica');
+          
+          // RISK INTEL
+          if (v.vulnerability.isKev) {
+              doc.font('Helvetica-Bold').fillColor('red').text('⚠ KEV STATUS: EXPLOITED IN THE WILD').fillColor('black').font('Helvetica');
+          }
+          if (v.vulnerability.epssScore) {
+              doc.text(`EPSS Score: ${(v.vulnerability.epssScore * 100).toFixed(2)}% (Percentile: ${(v.vulnerability.epssPercentile * 100).toFixed(0)}%)`);
+          }
+          if (v.reachability) {
+               doc.text(`Reachability: ${v.reachability.replace('_', ' ').toUpperCase()}`);
+          }
+
+          doc.fontSize(10).text(`Component: ${v.componentPurl}`);
           doc.text(`Justification: ${v.justification || 'N/A'}`);
           doc.moveDown(0.5);
         });

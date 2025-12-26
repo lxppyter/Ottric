@@ -9,6 +9,13 @@ export enum VexStatus {
   UNDER_INVESTIGATION = 'under_investigation',
 }
 
+export enum ReachabilityStatus {
+  DIRECT = 'direct',
+  TRANSITIVE = 'transitive',
+  NO_EVIDENCE = 'no_evidence',
+  UNKNOWN = 'unknown' // Default
+}
+
 @Entity()
 export class VexStatement {
   @PrimaryGeneratedColumn('uuid')
@@ -30,9 +37,20 @@ export class VexStatement {
   })
   status: VexStatus;
 
+  @Column({ type: 'timestamp', nullable: true })
+  expiresAt: Date;
+
   @Column({ nullable: true })
   justification: string;
 
   @Column({ nullable: true })
   impactEvaluation: string;
+
+  @Column({
+    type: 'enum',
+    enum: ReachabilityStatus,
+    default: ReachabilityStatus.UNKNOWN,
+    nullable: true
+  })
+  reachability: ReachabilityStatus;
 }

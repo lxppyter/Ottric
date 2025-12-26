@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Key, Bell, Copy, Trash2, Mail, Hash, Globe, Users, Shield, Building2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
@@ -240,34 +241,86 @@ export default function SettingsPage() {
         </TabsContent>
 
          {/* Notifications Tab */}
-         <TabsContent value="notifications">
+         <TabsContent value="notifications" className="space-y-6">
+             {/* Personal Email Preferences */}
              <Card className="bg-secondary/5 border-white/5 shadow-none">
                 <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
-                        <Bell className="w-5 h-5 text-primary" />
-                        Alert Preferences
+                        <Mail className="w-5 h-5 text-primary" />
+                        Email Preferences
                     </CardTitle>
-                    <CardDescription className="text-muted-foreground">Configure email, slack, and webhook integrations.</CardDescription>
+                    <CardDescription className="text-muted-foreground">Manage your personal email alerts.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label className="text-base text-white">Email Notifications</Label>
+                            <p className="text-sm text-muted-foreground">Receive updates to {profile?.email}</p>
+                        </div>
+                        <Switch 
+                            checked={profile?.notificationPreferences?.email ?? true}
+                            onCheckedChange={(checked: boolean) => {
+                                const newPrefs = { ...profile?.notificationPreferences, email: checked };
+                                setProfile({ ...profile, notificationPreferences: newPrefs });
+                                api.patch('/users/profile', { notificationPreferences: newPrefs });
+                            }}
+                        />
+                    </div>
+                    
+                    {(profile?.notificationPreferences?.email ?? true) && (
+                        <div className="pl-6 space-y-4 border-l-2 border-white/10 ml-2">
+                             <div className="flex items-center justify-between">
+                                <Label className="text-sm text-white font-normal">Critical Vulnerabilities</Label>
+                                <Switch 
+                                    checked={profile?.notificationPreferences?.criticalVuln ?? true}
+                                    onCheckedChange={(checked: boolean) => {
+                                        const newPrefs = { ...profile?.notificationPreferences, criticalVuln: checked };
+                                        setProfile({ ...profile, notificationPreferences: newPrefs });
+                                        api.patch('/users/profile', { notificationPreferences: newPrefs });
+                                    }}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <Label className="text-sm text-white font-normal">New SBOM Ingestion</Label>
+                                <Switch 
+                                    checked={profile?.notificationPreferences?.ingestion ?? true}
+                                    onCheckedChange={(checked: boolean) => {
+                                        const newPrefs = { ...profile?.notificationPreferences, ingestion: checked };
+                                        setProfile({ ...profile, notificationPreferences: newPrefs });
+                                        api.patch('/users/profile', { notificationPreferences: newPrefs });
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+             </Card>
+
+             {/* System Webhooks */}
+             <Card className="bg-secondary/5 border-white/5 shadow-none">
+                <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-primary" />
+                        System Webhooks
+                    </CardTitle>
+                    <CardDescription className="text-muted-foreground">Global webhooks for system events.</CardDescription>
                 </CardHeader>
                  <CardContent className="space-y-4">
-                     {channels.length === 0 && (
-                         <div className="text-center py-8 text-muted-foreground text-sm font-mono">
-                             No notification channels configured.
+                     {channels.filter(c => c.type === 'WEBHOOK').length === 0 && (
+                         <div className="text-center py-8 text-muted-foreground text-sm font-mono bg-black/20 rounded-lg border border-white/5 border-dashed">
+                             No webhooks configured.
                          </div>
                      )}
                      
-                     {channels.map((channel) => (
+                     {channels.filter(c => c.type === 'WEBHOOK').map((channel) => (
                          <div key={channel.id} className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
                              <div className="flex items-center gap-3">
-                                {channel.type === 'EMAIL' && <Mail className="w-8 h-8 p-1.5 bg-blue-500/10 text-blue-400 rounded-md" />}
-                                {channel.type === 'SLACK' && <Hash className="w-8 h-8 p-1.5 bg-purple-500/10 text-purple-400 rounded-md" />}
-                                {channel.type === 'WEBHOOK' && <Globe className="w-8 h-8 p-1.5 bg-green-500/10 text-green-400 rounded-md" />}
+                                <Globe className="w-8 h-8 p-1.5 bg-green-500/10 text-green-400 rounded-md" />
                                 <div>
                                     <div className="text-sm font-bold text-white">{channel.name}</div>
                                     <div className="text-[10px] font-mono text-muted-foreground uppercase flex items-center gap-2">
                                         <span>{channel.type}</span>
-                                        {channel.config?.email && <span className="text-white/40">• {channel.config.email}</span>}
-                                        {channel.config?.url && <span className="text-white/40">• {channel.config.url.substring(0, 30)}...</span>}
+                                        {channel.config?.url && <span className="text-white/40">• {channel.config.url.substring(0, 40)}...</span>}
                                     </div>
                                 </div>
                              </div>
@@ -280,47 +333,27 @@ export default function SettingsPage() {
                      <Dialog open={isAddChannelOpen} onOpenChange={setIsAddChannelOpen}>
                         <DialogTrigger asChild>
                             <Button className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-mono uppercase text-xs border-dashed">
-                                + Add Notification Channel
+                                + Add Webhook
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="bg-[#0A0A0A] border-white/10 text-white">
                             <DialogHeader>
-                                <DialogTitle>Add New Channel</DialogTitle>
+                                <DialogTitle>Add New Webhook</DialogTitle>
                                 <DialogDescription>Connect a new destination for alerts.</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 <div className="space-y-2">
                                     <Label>Friendly Name</Label>
-                                    <Input placeholder="e.g. Security Team Slack" value={newChannel.name} onChange={e => setNewChannel({...newChannel, name: e.target.value})} className="bg-black/40 border-white/10 text-white" />
+                                    <Input placeholder="e.g. SIEM Ingest" value={newChannel.name} onChange={e => setNewChannel({...newChannel, name: e.target.value})} className="bg-black/40 border-white/10 text-white" />
                                 </div>
+                                {/* Hidden Select since only Webhook exists now, or simplified */}
                                 <div className="space-y-2">
-                                    <Label>Channel Type</Label>
-                                    <Select onValueChange={(v) => setNewChannel({...newChannel, type: v, config: {}})} defaultValue={newChannel.type}>
-                                        <SelectTrigger className="bg-black/40 border-white/10 text-white">
-                                            <SelectValue placeholder="Select type" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
-                                            <SelectItem value="EMAIL">Email</SelectItem>
-                                            <SelectItem value="SLACK">Slack Webhook</SelectItem>
-                                            <SelectItem value="WEBHOOK">Generic Webhook</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Label>Webhook URL</Label>
+                                    <Input placeholder="https://..." value={newChannel.config?.url || ''} onChange={e => setNewChannel({...newChannel, type: 'WEBHOOK', config: { url: e.target.value }})} className="bg-black/40 border-white/10 text-white" />
                                 </div>
-                                {newChannel.type === 'EMAIL' && (
-                                    <div className="space-y-2">
-                                        <Label>Email Address</Label>
-                                        <Input placeholder="user@example.com" value={newChannel.config?.email || ''} onChange={e => setNewChannel({...newChannel, config: { ...newChannel.config, email: e.target.value }})} className="bg-black/40 border-white/10 text-white" />
-                                    </div>
-                                )}
-                                {(newChannel.type === 'SLACK' || newChannel.type === 'WEBHOOK') && (
-                                     <div className="space-y-2">
-                                        <Label>Webhook URL</Label>
-                                        <Input placeholder="https://..." value={newChannel.config?.url || ''} onChange={e => setNewChannel({...newChannel, config: { ...newChannel.config, url: e.target.value }})} className="bg-black/40 border-white/10 text-white" />
-                                    </div>
-                                )}
                             </div>
                             <DialogFooter>
-                                <Button onClick={addChannel} className="bg-primary text-black font-bold">Save Channel</Button>
+                                <Button onClick={addChannel} className="bg-primary text-black font-bold">Save Webhook</Button>
                             </DialogFooter>
                         </DialogContent>
                      </Dialog>

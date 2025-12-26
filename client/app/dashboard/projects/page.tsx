@@ -17,6 +17,11 @@ interface Project {
     latestVersion: string;
     lastUpdated: string;
     riskCount: number;
+    riskScore: number;
+    criticality: string;
+    environment: string;
+    complianceGrade?: string;
+    complianceScore?: number;
 }
 
 export default function ProjectsPage() {
@@ -115,7 +120,7 @@ export default function ProjectsPage() {
                     </Button>
                 </div>
             ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                     {filteredProjects.map((project) => (
                         <Card 
                             key={project.id} 
@@ -140,11 +145,25 @@ export default function ProjectsPage() {
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
                                         <div className={`px-2 py-1 rounded text-xs font-mono font-bold border ${project.riskCount > 0 ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                                            {project.riskCount > 0 ? `${project.riskCount} CRITICAL` : 'SECURE'}
+                                            {project.riskCount > 0 ? `${project.riskCount} VULNS` : 'SECURE'}
+                                        </div>
+                                        <div title={`Compliance Score: ${project.complianceScore ?? 100}`} className={`w-8 h-8 flex items-center justify-center rounded-lg font-black text-lg border cursor-help ${
+                                            (project.complianceGrade || 'A') === 'A' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                                            (project.complianceGrade || 'A') === 'B' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                                            (project.complianceGrade || 'A') === 'C' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                                            (project.complianceGrade || 'A') === 'D' ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' :
+                                            'bg-red-500/20 text-red-500 border-red-500/30'
+                                        }`}>
+                                            {project.complianceGrade || 'A'}
                                         </div>
                                     </div>
                                 </div>
                                 <CardTitle className="text-lg font-bold truncate pr-4">{project.name}</CardTitle>
+                                <div className="flex gap-2 mt-1">
+                                    <span className="text-[10px] font-mono border border-white/10 px-1 rounded text-muted-foreground uppercase">{project.environment}</span>
+                                    <span className={`text-[10px] font-mono border px-1 rounded uppercase ${project.criticality === 'CRITICAL' ? 'border-red-500/50 text-red-400' : 'border-white/10 text-muted-foreground'}`}>{project.criticality}</span>
+                                    <span className="text-[10px] font-mono border border-blue-500/20 text-blue-400 px-1 rounded">RISK: {project.riskScore}</span>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">

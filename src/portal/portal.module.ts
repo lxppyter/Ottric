@@ -7,8 +7,13 @@ import { VexStatement } from '../vex/entities/vex-statement.entity';
 import { Sbom } from '../sbom/entities/sbom.entity';
 import { ReportService } from './report.service';
 
+import { VulnModule } from '../vuln/vuln.module';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([Product, VexStatement, Sbom])],
+  imports: [
+    TypeOrmModule.forFeature([Product, VexStatement, Sbom]),
+    VulnModule,
+  ],
   controllers: [PortalController],
   providers: [PortalService, ReportService],
 })

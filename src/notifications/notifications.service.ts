@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -61,44 +61,68 @@ export class NotificationsService {
     return this.channelRepository.remove(channel);
   }
 
-  async dispatch(userId: string, event: string, payload: any) {
-    console.log(`[Dispatcher] Event: ${event} triggered for user ${userId}`);
+  private readonly logger = new Logger(NotificationsService.name);
 
-    const channels = await this.getChannels(userId);
-    const timestamp = new Date().toISOString();
+  // ... (existing methods createChannel, getChannels, deleteChannel) ...
 
-    for (const channel of channels) {
-      try {
-        console.log(
-          `[Dispatcher] Sending to channel: ${channel.name} (${channel.type})`,
-        );
+  async sendAlert(orgId: string, event: 'criticalVuln' | 'ingestion' | string, payload: any) {
+      // 1. System Channels
+      await this.dispatchToChannels(orgId, event, payload);
+      
+      // 2. Personal Notifications
+      await this.notifyUsers(orgId, event, payload);
+  }
 
-        const message = {
-          text: `🚨 **Ottric Security Alert**\n*Event:* ${event}\n*Time:* ${timestamp}\n*Details:* ${JSON.stringify(payload, null, 2)}`,
-          event,
-          payload,
-          timestamp,
-        };
+  private async dispatchToChannels(orgId: string, event: string, payload: any) {
+      const channels = await this.channelRepository.find({
+          where: { organization: { id: orgId } }
+      });
+      
+      const timestamp = new Date().toISOString();
+      const messageText = `🚨 **Ottric Security Alert**\n*Event:* ${event}\n*Time:* ${timestamp}\n*Details:* ${JSON.stringify(payload, null, 2)}`;
 
-        if (channel.type === 'SLACK' || channel.type === 'WEBHOOK') {
-          if (channel.config?.url) {
-            await axios.post(channel.config.url, message);
-            console.log(`[Dispatcher] Webhook sent to ${channel.config.url}`);
+      for (const channel of channels) {
+          try {
+              if (channel.type === 'WEBHOOK' && channel.config?.url) {
+                  await axios.post(channel.config.url, {
+                      text: messageText,
+                      event,
+                      payload
+                  });
+              }
+              // Legacy Email Channels (if any exist)
+              if (channel.type === 'EMAIL' && channel.config?.email) {
+                  this.logger.log(`[System Email] Sending to ${channel.config.email}`);
+              }
+          } catch (e) {
+              this.logger.error(`Failed to dispatch to channel ${channel.name}: ${e.message}`);
           }
-        } else if (channel.type === 'EMAIL') {
-          // Mock Email Sending
-          console.log(
-            `[Dispatcher] 📧 MOCK EMAIL sent to ${channel.config?.email}`,
-          );
-          console.log(`Subject: Security Alert - ${event}`);
-          console.log(`Body:`, message.text);
-        }
-      } catch (error) {
-        console.error(
-          `[Dispatcher] Failed to send to channel ${channel.name}:`,
-          error.message,
-        );
       }
-    }
+  }
+
+  private async notifyUsers(orgId: string, event: string, payload: any) {
+      const users = await this.usersService.getUsersByOrg(orgId);
+      for (const user of users) {
+          const prefs: any = user.notificationPreferences || { email: true, criticalVuln: true, ingestion: true };
+          
+          // 1. Master Switch
+          if (prefs.email === false) continue;
+
+          // 2. Specific Event toggle
+          // If preference key exists and is false, skip.
+          // Supported Keys: 'criticalVuln', 'ingestion'
+          if (prefs[event] === false) continue;
+
+          this.logger.log(`[Personal Email] Sending ${event} alert to ${user.email}`);
+          // Integration with SendGrid/SMTP would go here
+      }
+  }
+
+  // Deprecated/Legacy Adapter
+  async dispatch(userId: string, event: string, payload: any) {
+     const org = await this.usersService.getOrganization(userId);
+     if (org) {
+         await this.sendAlert(org.id, event, payload);
+     }
   }
 }

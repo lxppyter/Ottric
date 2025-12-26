@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Shield, Package, FileCode, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertTriangle, Shield, Download, Clock, Wrench, Package, FileCode, CheckCircle2, Radio, Github } from 'lucide-react';
+import { ActivityFeed } from '@/components/ActivityFeed';
 import { format } from 'date-fns';
 import {
   AlertDialog,
@@ -19,6 +20,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+import { GithubActionDialog } from '@/components/GithubActionDialog';
+import { VexEditDialog } from '@/components/VexEditDialog';
+import { ProjectOverview } from '@/components/ProjectOverview';
+import { toast } from 'sonner';
 
 export default function ProjectDetailsPage({ params }: { params: Promise<{ productName: string | string[] }> }) {
     const router = useRouter();
@@ -62,8 +68,8 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
         fetchVersions();
     }, [productName]);
 
-    const fetchAuditPack = async () => {
-        setLoading(true);
+    const fetchAuditPack = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
             // 2. Fetch Audit Pack for specific version
             const res = await api.get(`/portal/${encodeURIComponent(productName)}/${selectedVersion}/audit-pack`);
@@ -71,7 +77,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
         } catch (e) {
             console.error("Failed to fetch audit pack");
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
@@ -165,7 +171,23 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
                 </div>
             </div>
 
-            <div className="flex justify-end -mt-4">
+            <div className="flex justify-end -mt-4 gap-2">
+                 <Button 
+                    onClick={() => {
+                        if (!product?.id) return;
+                        api.get(`/vex/export/${product.id}`).then((response) => {
+                             const url = window.URL.createObjectURL(new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' }));
+                             const link = document.createElement('a');
+                             link.href = url;
+                             link.setAttribute('download', `${productName}-vex.json`);
+                             document.body.appendChild(link);
+                             link.click();
+                        }).catch(e => console.error(e));
+                    }}
+                    className="bg-secondary/10 hover:bg-secondary/20 border border-white/5 text-white font-mono uppercase text-xs gap-2"
+                 >
+                     <Download className="w-4 h-4" /> Export VEX (JSON)
+                 </Button>
                  <Button 
                     disabled={!selectedVersion}
                     onClick={() => {
@@ -187,53 +209,18 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
             </div>
 
             {auditPack && (
-                <Tabs defaultValue="overview" className="w-full">
+                <Tabs defaultValue="overview" className="w-full mt-8">
                     <TabsList className="bg-secondary/5 border border-white/5 w-full justify-start h-12 p-1 rounded-lg">
                         <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs font-bold uppercase tracking-wide h-9 px-6">Overview</TabsTrigger>
                         <TabsTrigger value="components" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs font-bold uppercase tracking-wide h-9 px-6"><Package className="w-3 h-3 mr-2"/> Components ({auditPack.summary.totalComponents})</TabsTrigger>
                         <TabsTrigger value="vulnerabilities" className="data-[state=active]:bg-destructive data-[state=active]:text-white text-xs font-bold uppercase tracking-wide h-9 px-6"><Shield className="w-3 h-3 mr-2" /> Vulnerabilities ({auditPack.summary.totalVulnerabilities})</TabsTrigger>
+                        <TabsTrigger value="activity" className="data-[state=active]:bg-zinc-100 data-[state=active]:text-black text-xs font-bold uppercase tracking-wide h-9 px-6"><Radio className="w-3 h-3 mr-2"/> Activity Log</TabsTrigger>
+                        <TabsTrigger value="settings" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs font-bold uppercase tracking-wide h-9 px-6 ml-auto"><Wrench className="w-3 h-3 mr-2" /> Settings</TabsTrigger>
                     </TabsList>
 
                     {/* OVERVIEW TAB */}
                     <TabsContent value="overview" className="space-y-6 mt-6">
-                        <div className="grid gap-6 md:grid-cols-4">
-                            <Card className="bg-secondary/5 border-white/5 text-white shadow-none">
-                                <CardHeader className="pb-2"><CardTitle className="text-xs font-mono uppercase text-muted-foreground">Affected</CardTitle></CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-black text-red-500">{auditPack.summary.affected}</div>
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-secondary/5 border-white/5 text-white shadow-none">
-                                <CardHeader className="pb-2"><CardTitle className="text-xs font-mono uppercase text-muted-foreground">Fixed</CardTitle></CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-black text-emerald-500">{auditPack.summary.fixed}</div>
-                                </CardContent>
-                            </Card>
-                             <Card className="bg-secondary/5 border-white/5 text-white shadow-none">
-                                <CardHeader className="pb-2"><CardTitle className="text-xs font-mono uppercase text-muted-foreground">Investigation</CardTitle></CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-black text-yellow-500">{auditPack.summary.underInvestigation}</div>
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-secondary/5 border-white/5 text-white shadow-none">
-                                <CardHeader className="pb-2"><CardTitle className="text-xs font-mono uppercase text-muted-foreground">Clean</CardTitle></CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-black text-blue-500">{auditPack.summary.notAffected}</div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                         <Card className="bg-secondary/5 border-white/5 text-white shadow-none p-6">
-                             <div className="flex items-center gap-4">
-                                <FileCode className="w-8 h-8 text-muted-foreground" />
-                                <div>
-                                    <h3 className="font-bold">SBOM Metadata</h3>
-                                    <pre className="text-xs text-muted-foreground font-mono mt-2 bg-black/50 p-4 rounded border border-white/5 overflow-x-auto">
-                                        {JSON.stringify(auditPack.product, null, 2)}
-                                    </pre>
-                                </div>
-                             </div>
-                        </Card>
+                        <ProjectOverview auditPack={auditPack} product={product} />
                     </TabsContent>
 
                     {/* COMPONENTS TAB */}
@@ -299,8 +286,8 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
                             </AlertDialog>
                         </div>
 
-                         <Card className="bg-secondary/5 border-white/5 text-white shadow-none">
-                             <div className="p-4 border-b border-white/5 flex text-xs font-mono font-bold uppercase text-muted-foreground">
+                        <Card className="bg-secondary/5 border-white/5 text-white shadow-none">
+                            <div className="p-4 border-b border-white/5 flex text-xs font-mono font-bold uppercase text-muted-foreground">
                                 <div className="w-32">ID</div>
                                 <div className="w-32">Severity</div>
                                 <div className="w-40">Status</div>
@@ -311,40 +298,105 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
                                 {auditPack.vex.map((v: any, i: number) => (
                                     <div key={v.id || i} className="p-4 flex items-center text-sm hover:bg-white/5 transition-colors">
                                         <div className="w-32 font-bold font-mono text-red-400">{v.vulnerability.id}</div>
-                                        <div className="w-32">
-                                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
-                                                v.vulnerability.severity === 'CRITICAL' ? 'bg-red-500 text-white' :
-                                                v.vulnerability.severity === 'HIGH' ? 'bg-orange-500 text-white' :
-                                                'bg-yellow-500 text-black'
+                                        <div className="w-32 flex flex-col gap-1">
+                                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase w-fit border ${
+                                                v.vulnerability.severity === 'CRITICAL' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' :
+                                                v.vulnerability.severity === 'HIGH' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                                                v.vulnerability.severity === 'MEDIUM' ? 'bg-orange-500/10 text-orange-400 border-orange-500/30' :
+                                                v.vulnerability.severity === 'LOW' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                                'bg-zinc-800 text-zinc-400 border-zinc-700'
                                             }`}>
                                                 {v.vulnerability.severity}
                                             </span>
+                                            
+                                            {/* KEV Badge */}
+                                            {v.vulnerability.isKev && (
+                                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase w-fit bg-red-600 text-white border border-red-400 animate-pulse">
+                                                    KEV / EXPLOITED
+                                                </span>
+                                            )}
+
+                                            {/* EPSS Badge */}
+                                            {v.vulnerability.epssScore > 0 && (
+                                                <span className={`px-2 py-0.5 rounded text-[9px] font-mono w-fit bg-zinc-800 border ${
+                                                    v.vulnerability.epssScore > 0.1 ? 'text-red-400 border-red-900' : 'text-zinc-400 border-zinc-800'
+                                                }`} title={`Percentile: ${(v.vulnerability.epssPercentile * 100).toFixed(1)}%`}>
+                                                    EPSS: {(v.vulnerability.epssScore * 100).toFixed(2)}%
+                                                </span>
+                                            )}
+
+                                            {/* Reachability Badge */}
+                                            {v.reachability && v.reachability !== 'unknown' && (
+                                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase w-fit border ${
+                                                    v.reachability === 'direct' ? 'bg-red-900/30 text-red-500 border-red-500/50' : 
+                                                    v.reachability === 'transitive' ? 'bg-orange-900/30 text-orange-500 border-orange-500/50' :
+                                                    'bg-emerald-900/30 text-emerald-500 border-emerald-500/50'
+                                                }`}>
+                                                    {v.reachability.replace('_', ' ')}
+                                                </span>
+                                            )}
+                                            {/* Fix Version Badge */}
+                                            {v.vulnerability.hasFix && v.vulnerability.fixedIn && (
+                                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase w-fit flex items-center gap-1 border ${
+                                                    v.vulnerability.upgradeRisk === 'HIGH' ? 'bg-red-900/40 text-red-400 border-red-500/50' : 
+                                                    v.vulnerability.upgradeRisk === 'MEDIUM' ? 'bg-orange-900/40 text-orange-400 border-orange-500/50' :
+                                                    v.vulnerability.upgradeRisk === 'LOW' ? 'bg-emerald-900/40 text-emerald-400 border-emerald-500/50' :
+                                                    'bg-blue-900/40 text-blue-400 border-blue-500/50'
+                                                }`}>
+                                                    <Wrench className="w-3 h-3" />
+                                                    FIX: {v.vulnerability.fixedIn}
+                                                    {v.vulnerability.upgradeRisk && v.vulnerability.upgradeRisk !== 'UNKNOWN' && (
+                                                        <span className="opacity-75 ml-1">
+                                                            ({v.vulnerability.upgradeRisk} RISK)
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="w-40">
-                                             <Select 
-                                                value={v.status} 
-                                                onValueChange={async (val) => {
-                                                    try {
-                                                        await api.patch(`/vex/${v.id}`, { status: val });
-                                                        // Update local state without full reload
-                                                        const newVex = [...auditPack.vex];
-                                                        newVex[i].status = val;
-                                                        
-                                                        const newSummary = calculateSummary(newVex);
-                                                        setAuditPack({ ...auditPack, vex: newVex, summary: newSummary });
-                                                    } catch (e) { console.error(e); }
+                                        <div className="w-40 flex flex-col gap-1 items-start justify-center">
+                                            <VexEditDialog 
+                                                vex={v}
+                                                onUpdate={(newStatus, newJustification, newExpiresAt) => {
+                                                    // 1. Optimistic Update (Immediate Feedback)
+                                                    const newVex = [...auditPack.vex];
+                                                    newVex[i].status = newStatus;
+                                                    newVex[i].justification = newJustification;
+                                                    newVex[i].expiresAt = newExpiresAt;
+                                                    const newSummary = calculateSummary(newVex);
+                                                    setAuditPack({ ...auditPack, vex: newVex, summary: newSummary });
+
+                                                    // 2. Background Refresh (Consistency & Calculations like Risk Score)
+                                                    fetchAuditPack(false);
                                                 }}
-                                             >
-                                                <SelectTrigger className="w-[140px] h-7 text-[10px] border-white/5 bg-black/20 font-mono uppercase">
-                                                     <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-zinc-950 border-white/10 text-white">
-                                                    <SelectItem value="affected">Affected</SelectItem>
-                                                    <SelectItem value="not_affected">Not Affected</SelectItem>
-                                                    <SelectItem value="fixed">Fixed</SelectItem>
-                                                    <SelectItem value="under_investigation">Under Investigation</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            >
+                                                <Button variant="outline" className="w-[140px] h-7 text-[10px] border-white/5 bg-black/20 font-mono uppercase justify-between px-2 hover:bg-white/5 text-zinc-300">
+                                                    {v.status.replace('_', ' ')}
+                                                </Button>
+                                            </VexEditDialog>
+
+                                            <div className="mt-1">
+                                                <GithubActionDialog 
+                                                    productId={product.id}
+                                                    vulnerability={v.vulnerability}
+                                                    componentPurl={v.componentPurl}
+                                                    trigger={
+                                                        <Button variant="ghost" className="h-6 text-[10px] text-zinc-500 hover:text-white flex items-center gap-1 px-1">
+                                                            <Github className="w-3 h-3" /> Create Issue/PR
+                                                        </Button>
+                                                    }
+                                                />
+                                            </div>
+                                            
+                                            {v.expiresAt && new Date(v.expiresAt) < new Date() && (
+                                                <span className="text-[9px] font-bold text-red-500 flex items-center gap-1 animate-pulse px-1">
+                                                    <Clock className="w-3 h-3" /> EXPIRED
+                                                </span>
+                                            )}
+                                            {v.expiresAt && new Date(v.expiresAt) >= new Date() && (
+                                                <span className="text-[9px] text-muted-foreground flex items-center gap-1 opacity-70 px-1">
+                                                    <Clock className="w-3 h-3" /> Until {format(new Date(v.expiresAt), 'MMM d')}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex-1 font-mono text-xs text-muted-foreground truncate pr-4" title={v.componentPurl}>{v.componentPurl}</div>
                                         <div className="flex-1 text-xs text-muted-foreground italic">{v.justification || '-'}</div>
@@ -359,8 +411,83 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ produ
                             </div>
                         </Card>
                     </TabsContent>
+
+                    {/* ACTIVITY TAB */}
+                    <TabsContent value="activity" className="mt-6">
+                         <Card className="bg-black/40 border-white/10 p-4">
+                            <ActivityFeed productId={product.id} />
+                        </Card>
+                    </TabsContent>
+
+                    {/* SETTINGS TAB */}
+                    <TabsContent value="settings" className="mt-6">
+                        <Card className="bg-zinc-900 border-white/10">
+                            <CardHeader>
+                                <CardTitle className="text-white flex items-center gap-2">
+                                    <Github className="w-5 h-5 text-purple-400" />
+                                    GitHub Integration
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase">Repository URL</label>
+                                        <input 
+                                            className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                            placeholder="https://github.com/owner/repo"
+                                            defaultValue={product.repositoryUrl || ''}
+                                            id="repoUrl"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase">Manifest File Path</label>
+                                        <input 
+                                            className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                            placeholder="package.json"
+                                            defaultValue={product.manifestFilePath || ''}
+                                            id="manifestPath"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 col-span-2">
+                                        <label className="text-xs font-bold text-muted-foreground uppercase">Personal Access Token (PAT)</label>
+                                        <input 
+                                            type="password"
+                                            className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                            placeholder={product.githubToken ? "Token is set (hidden)" : "ghp_..."}
+                                            id="githubToken"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground">Token is encrypted. Required scopes: `repo` (for Private repos) or `public_repo`. Leave blank to keep existing.</p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end pt-4">
+                                    <Button 
+                                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                                        onClick={async () => {
+                                            const repoUrl = (document.getElementById('repoUrl') as HTMLInputElement).value;
+                                            const manifestPath = (document.getElementById('manifestPath') as HTMLInputElement).value;
+                                            const token = (document.getElementById('githubToken') as HTMLInputElement).value;
+                                            
+                                            try {
+                                                await api.patch(`/products/${product.id}/integrations`, {
+                                                    repositoryUrl: repoUrl,
+                                                    manifestFilePath: manifestPath,
+                                                    githubToken: token || undefined
+                                                });
+                                                toast("Settings saved", { description: "GitHub integration updated." });
+                                            } catch (e) {
+                                                toast.error("Failed to save settings");
+                                            }
+                                        }}
+                                    >
+                                        Save Configuration
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
                 </Tabs>
             )}
         </div>
     );
 }
+

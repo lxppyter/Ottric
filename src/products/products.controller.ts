@@ -48,4 +48,32 @@ export class ProductsController {
       req.user.organizationId,
     );
   }
+
+  @Patch(':id/context')
+  @ApiOperation({ summary: 'Update product context (environment, criticality)' })
+  async updateContext(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      criticality?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+      environment?: 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION';
+      isInternetFacing?: boolean;
+    },
+    @Req() req,
+  ) {
+    return this.productsService.updateProductContext(
+      id,
+      req.user.organizationId,
+      body,
+    );
+  }
+  @Patch(':id/integrations')
+  @ApiOperation({ summary: 'Update integration settings' })
+  async updateIntegrations(
+    @Param('id') id: string,
+    @Body() body: { repositoryUrl?: string; manifestFilePath?: string; githubToken?: string },
+    @Req() req,
+  ) {
+    return this.productsService.updateIntegrationSettings(id, req.user.organizationId, body);
+  }
 }
