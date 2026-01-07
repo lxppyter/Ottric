@@ -31,7 +31,7 @@ import { Product } from './products/entities/product.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '.env.development',
+      envFilePath: ['.env.development', '.env'],
     }),
     // Rate Limiting: 100 requests per minute
     ThrottlerModule.forRoot([

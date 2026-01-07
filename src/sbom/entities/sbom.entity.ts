@@ -5,8 +5,10 @@ import {
   OneToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { Release } from '../../products/entities/release.entity';
+import { Component } from './component.entity';
 
 @Entity()
 export class Sbom {
@@ -24,4 +26,7 @@ export class Sbom {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Component, (component) => component.sbom)
+  components: Component[];
 }

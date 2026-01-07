@@ -7,6 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Organization } from './organization.entity';
+import { PersonalNotification } from './personal-notification.entity';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -47,5 +48,8 @@ export class User {
       criticalVuln: boolean;
       ingestion: boolean;
   };
+
+  @OneToMany(() => PersonalNotification, (notification) => notification.user)
+  notifications: PersonalNotification[];
 
 }
