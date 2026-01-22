@@ -1,6 +1,6 @@
 /**
  * @author github.com/lxppyter
- * @license SSPL-1.0
+ * @license AGPL-3.0
  */
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";

@@ -1,6 +1,6 @@
 /**
  * @author github.com/lxppyter
- * @license SSPL-1.0
+ * @license AGPL-3.0
  */
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';

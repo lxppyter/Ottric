@@ -124,7 +124,7 @@ npm run test:e2e
 
 ## 📄 License
 
-This project is licensed under the [Server Side Public License v1 (SSPL)](LICENSE).
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
 <p align="center">
   Built with ❤️ by <a href="https://github.com/lxppyter">github.com/lxppyter</a>
