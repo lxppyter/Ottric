@@ -1,6 +1,15 @@
 # Ottric - Software Supply Chain Security Platform
 
+![Ottric Hero](imgs/Ottric-Hero.png)
+
 Ottric is an automated platform for managing Software Bill of Materials (SBOM) and Vulnerability Exploitability Exchange (VEX). It helps organizations track vulnerabilities in their software supply chain, correlate them with specific releases, and provide cryptographic proof of "Not Affected" status to customers.
+
+![Ottric Overview](imgs/Ottric-Overview.png)
+
+## 💡 Why Ottric?
+
+![Why Ottric](imgs/Ottric-Why.png)
+![Who is this for](imgs/Who-is-this-for.png)
 
 ## 🚀 Key Features
 
@@ -11,6 +20,14 @@ Ottric is an automated platform for managing Software Bill of Materials (SBOM) a
 -   **VEX Workflow:** Manage vulnerability status (`Affected`, `Not Affected`, `Fixed`, `Under Investigation`) with mandatory justification.
 -   **Customer Portal:** Securely share SBOMs and Security Reports with customers.
 -   **Enterprise Security:** API Rate Limiting, Versioning, and Security Headers enabled by default.
+
+## 📸 Platform Preview
+
+![Projects Overview](imgs/Projects-Overview.png)
+![Vulnerabilities](imgs/Projects-Vulnerabilities.png)
+![Components](imgs/Projects-Components.png)
+![Activity Log](imgs/Projects-ActivityLog.png)
+![Github Integration](imgs/Projects-GithubIntegration.png)
 
 ## 🛠 Tech Stack
 
@@ -67,6 +84,8 @@ Ottric is designed with "Secure by Default" principles:
 4.  **Input Validation:** Strict DTO validation with `class-validator` (whitelist enabled) prevents Mass Assignment and Injection attacks.
 5.  **Authentication:** JWT (JSON Web Token) based stateless authentication.
 
+![FAQs](imgs/Ottric-FAQs.png)
+
 ## 📚 API Documentation
 
 The Monitor API is a RESTful service used by:
@@ -100,3 +119,5 @@ npm run test:e2e
 
 ---
 *Built by Ottric Security Team.*
+
+![Join the Waitlist](imgs/Join-the-waitlist.png)
