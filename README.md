@@ -121,3 +121,11 @@ npm run test:e2e
 *Built by Ottric Security Team.*
 
 ![Join the Waitlist](imgs/Join-the-waitlist.png)
+
+## 📄 License
+
+This project is licensed under the [Server Side Public License v1 (SSPL)](LICENSE).
+
+<p align="center">
+  Built with ❤️ by <a href="https://github.com/lxppyter">github.com/lxppyter</a>
+</p>

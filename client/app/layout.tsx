@@ -1,3 +1,7 @@
+/**
+ * @author github.com/lxppyter
+ * @license SSPL-1.0
+ */
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
@@ -38,6 +42,9 @@ export default function RootLayout({
         <SmoothScroll />
         {children}
         <Toaster />
+        <footer className="w-full py-4 text-center text-sm text-muted-foreground border-t bg-background">
+          Built with ❤️ by <a href="https://github.com/lxppyter" target="_blank" className="underline hover:text-primary">github.com/lxppyter</a>
+        </footer>
       </body>
     </html>
   );
